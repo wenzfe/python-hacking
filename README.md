@@ -31,6 +31,8 @@ Dabei können auch Informationen wie Usernames, Passwörter etc. gesammelt werde
 - Brute Force
 
 
+---
+
 
 Quellen
 * https://wpscan.com/statistics
