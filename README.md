@@ -1,14 +1,5 @@
 # python-hacking
 
-## Projekt: WpScan + Metasploit
-Ein Tool soll Schwachstellen in einem Worpress Server ausfindich machen und diese dann ausnutzen.
-Dabei können auch Informationen wie Usernames, Passwörter etc. gesammelt werden. 
-
-### Information Wordpress
-
-> WordPress is an open-source Content Management System (CMS) that can be used for multiple purposes. It's often used to host blogs and forums. WordPress is highly customizable as well as SEO friendly, which makes it popular among companies. However, its customizability and extensible nature make it prone to vulnerabilities through third party themes and plugins. WordPress is written in PHP and usually runs on Apache with MySQL as the backend.
-
-
 ## To-DO
 
 1. Webserver
@@ -47,6 +38,15 @@ Dabei können auch Informationen wie Usernames, Passwörter etc. gesammelt werde
 
 
 ---
+---
+
+## Projekt: WpScan + Metasploit
+Ein Tool soll Schwachstellen in einem Worpress Server ausfindich machen und diese dann ausnutzen.
+Dabei können auch Informationen wie Usernames, Passwörter etc. gesammelt werden. 
+
+### Information Wordpress
+
+> WordPress is an open-source Content Management System (CMS) that can be used for multiple purposes. It's often used to host blogs and forums. WordPress is highly customizable as well as SEO friendly, which makes it popular among companies. However, its customizability and extensible nature make it prone to vulnerabilities through third party themes and plugins. WordPress is written in PHP and usually runs on Apache with MySQL as the backend.
 
 ### Bedienung 
 - Soll in Richtung Metasploit gehen
