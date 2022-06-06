@@ -2,7 +2,7 @@
 
 ## Spider | Web Carwler
 
-![This is an image](doc/webcrawler.svg)
+![Diagramm](doc/webcrawler.svg)
 
 
 
