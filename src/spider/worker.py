@@ -1,34 +1,28 @@
-from requests_html import AsyncHTMLSession
+from requests_html import HTMLSession
 import asyncio
-import json
 
 
-async def crawl(url):
+def crawl(url: str):
     """
     Crawl a url
     Arguments:
         url: string
     Returns:
-        JSON Object with links, html, css, js, images
+        Dictionary with links: [URLs], html: [code], css: [URLs], js: [URLs], images; [URLs | data}
     """
 
-    asession = AsyncHTMLSession()
-    
-    r = await asession.get(url)
-    for e in r.html.find('style'): # Link tag geht auch
-        print(e)
-
-
-
+    session = HTMLSession()
+    r = session.get(url)
 
     return {
-        'links': r.html.links,
         'html': r.html.html,
-        'css': None,
-        'js': None,
-        'images': None
+        'links': r.html.links,
+        'css': [e.attrs['href'] for e in r.html.find('link[href$=".css"]')],
+        'js': [e.attrs['src'] for e in r.html.find('script[src]')],
+        'images': [e.attrs['src'] for e in r.html.find('img[src]')] # can contain encoded data e.g src="data:image/png;base64(...)"
     } 
 
 
 if __name__ == '__main__':
-    asyncio.run(crawl("www.google.com"))
+    res = crawl()
+
