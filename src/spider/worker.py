@@ -1,7 +1,11 @@
+from urllib.parse import urlparse
 from requests_html import HTMLSession
-from typing import TypedDict
+from threading import Lock
+from queue import Queue
+import logging
+from typing import TypedDict, List
 
-import asyncio
+# import asyncio
 
 class Crawled(TypedDict):
     html: str
@@ -11,7 +15,7 @@ class Crawled(TypedDict):
     images: List[str]
     images_data: List[str]
 
-def crawl(url: str) -> Crawled:
+def crawl_page(url: str) -> Crawled:
     """
     Crawl a url
     """
@@ -29,5 +33,34 @@ def crawl(url: str) -> Crawled:
     } 
 
 
+
+def thread_worker( url: str, timeout: int, queue: Queue, visited: set, lock: Lock, visit_external_url=False):
+        logging.info(f"[{url}] Start working")
+        result_page = crawl_page(url) # crawl the page at the specified url
+
+        # fill Queue 
+        for current_link in result_page['links']:
+            parsed_link = urlparse(current_link)
+            parsed_url = f"{parsed_link.scheme}://{parsed_link.netloc}{parsed_link.path}"
+            if parsed_url not in visited: # prevent re visiting of a url
+                if visit_external_url == True or urlparse(url).netloc in parsed_url :
+                    logging.debug(f"[{url}] new queue entry: {parsed_url}")
+                    queue.put(parsed_url)    # add new elements to queue            
+                
+        # download & store
+
+
+        # update blacklist
+        with lock:
+            visited.add(url)    # mark url as visited
+        
+
+
+    
+
 if __name__ == '__main__':
-    res = crawl("http://domain.example")
+    res = crawl_page("http://www.google.com")
+    for e in res['links']:
+        print(e)
+
+
