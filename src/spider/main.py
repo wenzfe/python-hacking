@@ -18,10 +18,10 @@ import urllib.request
 
 # Thread based Crawler
 
-MAX_WORKERS = 2
+MAX_WORKERS = 5
 REQUEST_TIMEOUT = 60
 LOG_LEVEL = 0
-FORMAT = '[%(asctime)s] [%(levelname)-8s] [%(thread)d] [%(threadName)s] [%(message)s]'
+FORMAT = '[%(asctime)s] [%(levelname)-8s] [%(thread)-6d] [%(threadName)s] [%(message)s]'
 queue_urls = Queue()
 
 # Thread safety
@@ -29,7 +29,8 @@ queue_urls = Queue()
 lock_for_Set = Lock()
 visited = set()
 # ToDo: 
-URLS = ['http://www.foxnews.com/' ]
+URLS = ['https://www.foxnews.com/' ]
+
 
 
 
@@ -57,6 +58,7 @@ def main():
             sleep(2)
             next_url = queue_urls.get()
             logging.info(f"Next job for worker: {next_url}")
+            logging.info(f"Number of visited URLs: {len(visited)}")
             # log queue size
             # check Thread's for errors and log them
             # use list [e.result() for e in res]
