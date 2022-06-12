@@ -5,6 +5,8 @@ from queue import Queue
 import logging
 from typing import TypedDict, List
 
+from re import fullmatch, match
+
 # import asyncio
 
 class Crawled(TypedDict):
@@ -17,7 +19,7 @@ class Crawled(TypedDict):
 
 def crawl_page(url: str) -> Crawled:
     """
-    Crawl a url
+    Crawl the specivied url, extract html and embedded images and also urls and urls for css, js, images resources. 
     """
 
     session = HTMLSession()
@@ -30,37 +32,35 @@ def crawl_page(url: str) -> Crawled:
         'js': [e.attrs['src'] for e in r.html.find('script[src]')],
         'images': [e.attrs['src'] for e in r.html.find('img[src^="http"]')], 
         'images_data': [e.attrs['src'] for e in r.html.find('img[src^="data:"]')]
-    } 
+    }
 
-
+def fill_queue(origin_url: str, new_urls: List[str], queue: Queue, visited: set, visit_external_url=False):
+    logging.info(f"[{origin_url}] found {len(new_urls)} urls")
+    for current_link in new_urls:
+        link = urlparse(current_link)
+        next_url_candidate = f"{link.scheme}://{link.netloc}{link.path}"
+        if next_url_candidate not in visited:   # prevent revisiting of a url
+            if visit_external_url == True or urlparse(origin_url).netloc == link.netloc:
+                logging.debug(f"{origin_url} new queue entry: {next_url_candidate}")
+                queue.put(next_url_candidate)    # add new elements to queue
 
 def thread_worker( url: str, timeout: int, queue: Queue, visited: set, lock: Lock, visit_external_url=False):
         logging.info(f"[{url}] Start working")
-        result_page = crawl_page(url) # crawl the page at the specified url
+        input_url = urlparse(url)
+        input_url = f"{input_url.scheme}://{input_url.netloc}/"
+        try:                    # crawl the page at the specified url
+            result_page = crawl_page(url) 
+        except Exception as exc_crawl_page:
+            logging.error(exc_crawl_page)
+        else:
+            try:                # fill queue
+                fill_queue(url, result_page['links'], queue, visited, visit_external_url)                
+            except Exception as exc_fill_queue:
+                logging.error(exc_fill_queue)
+            else:
+                pass                                                        
+                                    # download & store
 
-        # fill Queue 
-        for current_link in result_page['links']:
-            parsed_link = urlparse(current_link)
-            parsed_url = f"{parsed_link.scheme}://{parsed_link.netloc}{parsed_link.path}"
-            if parsed_url not in visited: # prevent re visiting of a url
-                if visit_external_url == True or urlparse(url).netloc in parsed_url :
-                    logging.debug(f"[{url}] new queue entry: {parsed_url}")
-                    queue.put(parsed_url)    # add new elements to queue            
-                
-        # download & store
-
-
-        # update blacklist
-        with lock:
-            visited.add(url)    # mark url as visited
-        
-
-
-    
-
-if __name__ == '__main__':
-    res = crawl_page("http://www.google.com")
-    for e in res['links']:
-        print(e)
-
+            with lock:              # update blacklist
+                visited.add(url)        # mark url as visited
 
