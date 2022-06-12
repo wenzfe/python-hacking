@@ -4,8 +4,9 @@ from threading import Lock
 from queue import Queue
 import logging
 from typing import TypedDict, List
-
 from re import fullmatch, match
+from requests import get
+import asyncio
 
 # import asyncio
 
@@ -43,6 +44,14 @@ def fill_queue(origin_url: str, new_urls: List[str], queue: Queue, visited: set,
             if visit_external_url == True or urlparse(origin_url).netloc == link.netloc:
                 logging.debug(f"{origin_url} new queue entry: {next_url_candidate}")
                 queue.put(next_url_candidate)    # add new elements to queue
+
+def store(data: str):
+    pass
+
+def download_file(url: str):
+    r = get(url)
+    return b"".join([chunk for chunk in r.iter_content(chunk_size=128)]) 
+    
 
 def thread_worker( url: str, timeout: int, queue: Queue, visited: set, lock: Lock, visit_external_url=False):
         logging.info(f"[{url}] Start working")
