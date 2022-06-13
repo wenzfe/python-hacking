@@ -1,3 +1,4 @@
+import collections
 from urllib.parse import urlparse
 from requests_html import HTMLSession
 from threading import Lock
@@ -6,9 +7,12 @@ import logging
 from typing import TypedDict, List
 from re import fullmatch, match
 from requests import get
-import asyncio
+from uuid import uuid4
+import os
 
-# import asyncio
+from collections.abc import Iterator 
+
+import asyncio
 
 class Crawled(TypedDict):
     html: str
@@ -45,13 +49,15 @@ def fill_queue(origin_url: str, new_urls: List[str], queue: Queue, visited: set,
                 logging.debug(f"{origin_url} new queue entry: {next_url_candidate}")
                 queue.put(next_url_candidate)    # add new elements to queue
 
-def store(data: str):
-    pass
+def store(chunk_iterator: Iterator, name: str, path: str):
+    with open(os.path.join(path, name), "wb") as file:
+        for chunk in chunk_iterator:
+            file.write(chunk)
 
-def download_file(url: str):
+
+def download_file(url: str, chunk_size=128) -> Iterator: 
     r = get(url)
-    return b"".join([chunk for chunk in r.iter_content(chunk_size=128)]) 
-    
+    return r.iter_content(chunk_size=chunk_size)
 
 def thread_worker( url: str, timeout: int, queue: Queue, visited: set, lock: Lock, visit_external_url=False):
         logging.info(f"[{url}] Start working")
@@ -67,8 +73,8 @@ def thread_worker( url: str, timeout: int, queue: Queue, visited: set, lock: Loc
             except Exception as exc_fill_queue:
                 logging.error(exc_fill_queue)
             else:
-                pass                                                        
-                                    # download & store
+                pass                                                      
+                # store(download_file(url), "filename", os.getcwd())                    # download & store
 
             with lock:              # update blacklist
                 visited.add(url)        # mark url as visited
