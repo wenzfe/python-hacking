@@ -1,4 +1,5 @@
 import collections
+from pkgutil import extend_path
 from urllib.parse import urlparse
 from requests_html import HTMLSession
 from threading import Lock
@@ -50,16 +51,39 @@ def fill_queue(origin_url: str, new_urls: List[str], queue: Queue, visited: set,
                 queue.put(next_url_candidate)    # add new elements to queue
 
 def store(chunk_iterator: Iterator, name: str, path: str):
-    with open(os.path.join(path, name), "wb") as file:
-        for chunk in chunk_iterator:
-            file.write(chunk)
+    try:
+        with open(os.path.join(path, name), "wb") as file:
+            for chunk in chunk_iterator:
+                file.write(chunk)
+    except Exception as ecx_write_file:
+        logging.error(ecx_write_file)
 
 
 def download_file(url: str, chunk_size=128) -> Iterator: 
-    r = get(url)
-    return r.iter_content(chunk_size=chunk_size)
+    scheme_http = "http:"
+    if not url.startswith(scheme_http):
+        logging.warning(f"Missing scheme for {url} trying with {scheme_http}")
+        url = scheme_http + url
+    try:
+        r = get(url)
+    except Exception as exc_download:
+        logging.error(exc_download)
+    else:
+        return r.iter_content(chunk_size=chunk_size)
 
-def thread_worker( url: str, timeout: int, queue: Queue, visited: set, lock: Lock, visit_external_url=False):
+def store_data_type_by_url(objects: list, path: str, dir: str):
+    """
+    Creates a directory and stores the passed data in it.
+    """
+    extend_path = os.path.join(path, dir)
+    os.makedirs(extend_path, exist_ok=True)   # Create Directory for data type
+
+    for element in objects:
+        store(download_file(element), str(uuid4()), extend_path)
+        
+
+
+def thread_worker( url: str, timeout: int, queue: Queue, visited: set, lock: Lock, base_path: str, visit_external_url=False):
         logging.info(f"[{url}] Start working")
         input_url = urlparse(url)
         input_url = f"{input_url.scheme}://{input_url.netloc}/"
@@ -73,9 +97,23 @@ def thread_worker( url: str, timeout: int, queue: Queue, visited: set, lock: Loc
             except Exception as exc_fill_queue:
                 logging.error(exc_fill_queue)
             else:
-                pass                                                      
-                # store(download_file(url), "filename", os.getcwd())                    # download & store
 
-            with lock:              # update blacklist
-                visited.add(url)        # mark url as visited
+                try:
+                    dirname = uuid4()
+                    extended_path = os.path.join(base_path, str(dirname))
+                    logging.error(extended_path)
+                    os.makedirs(extended_path, exist_ok=True)
+
+
+                    # store_data_type(XdataX, "OTHER")
+                    # store_data_type(XdataX, "HTML")
+                    store_data_type_by_url(result_page['css'], extended_path, "CSS")
+                    store_data_type_by_url(result_page['js'], extended_path, "JS")
+                    store_data_type_by_url(result_page['images'], extended_path, "IMAGE")
+                    # 
+                except Exception as exc_store_data:
+                    logging.error(exc_store_data)
+                else:
+                    with lock:                  # update blacklist
+                        visited.add(url)        # mark url as visited
 

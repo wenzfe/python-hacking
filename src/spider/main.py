@@ -10,9 +10,8 @@ import sys
 
 # import code
 from worker import thread_worker
+import os
 
-# ToDo: Test - Temp
-import urllib.request
 
 # ToDo: define Request Header
 
@@ -20,7 +19,7 @@ import urllib.request
 
 MAX_WORKERS = 5
 REQUEST_TIMEOUT = 60
-LOG_LEVEL = 0
+LOG_LEVEL = 10
 FORMAT = '[%(asctime)s] [%(levelname)-8s] [%(thread)-6d] [%(threadName)s] [%(message)s]'
 queue_urls = Queue()
 
@@ -31,7 +30,7 @@ visited = set()
 # ToDo: 
 URLS = ['https://www.foxnews.com/' ]
 
-
+PATH="c:\\Temp"
 
 
 def main():
@@ -50,12 +49,13 @@ def main():
             # log queue size
             # check Thread's for errors and log them
             # use list [e.result() for e in res]
-            executor.submit(thread_worker, next_url, REQUEST_TIMEOUT, queue_urls, visited, lock_for_Set)
-            print("size", queue_urls.qsize())
+            executor.submit(thread_worker, next_url, REQUEST_TIMEOUT, queue_urls, visited, lock_for_Set, PATH)
+
+            print("queue size:", queue_urls.qsize())
+            print("visited size:", len(visited))
             sleep(4)
 
             
-
         # for future in cf.as_completed(future_to_url):
         #     url = future_to_url[future]
         #     try:
