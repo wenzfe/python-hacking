@@ -130,6 +130,7 @@ async def main(target_url):
                 linktarget_de = "https://group.mercedes-benz.com/karriere/ueber-uns/standorte/standort-detailseite-"+str(num[0])+".html"
                 linktarget_en = "https://group.mercedes-benz.com/careers/about-us/locations/location-detail-page-"+str(num[0])+".html"
                 list_linktarget.append((linktarget_de,linktarget_en))
+                
     tasks = (spider(s, url) for url in list_linktarget)
 
     return await asyncio.gather(*tasks)

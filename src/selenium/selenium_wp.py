@@ -191,7 +191,7 @@ if __name__ == '__main__':
     parser.add_argument('-sC', '--skipCreate', action=argparse.BooleanOptionalAction, default=False, help='Dont create user with administrator role')
     parser.add_argument('-sB', '--skipBackdoor', action=argparse.BooleanOptionalAction, default=False, help='Dont crate backdoor')
     parser.add_argument('-H', '--headless', action=argparse.BooleanOptionalAction, default=False, help='Set ChromeOption headless for no window')
-    parser.add_argument('-log', '--level', default=20, type=int, help='Set Logging Levels')
+    parser.add_argument('-log', '--level', default=20, type=int, help='Set Logging Level')
     args = parser.parse_args()
     logging.basicConfig(stream=sys.stdout, encoding='utf-8', format=FORMAT, level=args.level)
     args.url = args.url.rstrip('/')
