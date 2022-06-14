@@ -75,7 +75,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Username Enumartion Skript, find Usernames via User ID and Login Alert')
     parser.add_argument('--url', required=True, type=str, help='Target WordPress URL')
     parser.add_argument('-u', '--userlist', nargs='*' , default=[], help='Liste with Usernames')
-    parser.add_argument('-o', '--output', nargs='?', default=None, const='wp_username.lst')
+    parser.add_argument('-o', '--output', nargs='?', default=None, const='find_username.lst')
     parser.add_argument('-i', '--id', type=int, default=100, help='Nummbers of User IDs to Brute Force')
     parser.add_argument('-sIE', '--skipIdEnum', action=argparse.BooleanOptionalAction, default=False, help='Skip Enumeration via User ID')
     parser.add_argument('-sLE', '--skipLoginEnum', action=argparse.BooleanOptionalAction, default=False, help='Skip Enumeration via Login Alert')
