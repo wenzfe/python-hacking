@@ -34,18 +34,6 @@ URLS = ['https://www.foxnews.com/' ]
 
 
 
-# ToDo: 
-def load_url(url: str, timeout: int, queue: Queue, visited: set, visited_lock: Lock):
-    with urllib.request.urlopen(url, timeout=timeout) as conn:
-
-        # Tipp: mit with machen
-        # visited_lock.acquire()
-        # visited_lock.release()
-        sleep(2)
-        return conn.read()
-
-
-
 def main():
     for e in URLS:
         queue_urls.put(e)
