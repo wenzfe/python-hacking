@@ -86,7 +86,7 @@ if __name__ == '__main__':
     group_user.add_argument('-U', '--user', nargs='+', type=str, help='Individual Usernames')
     group_password.add_argument('-p', '--passwordlist', type=str, help='List with Passwords')
     group_password.add_argument('-P', '--password', nargs='+', type=str, help='Individual Passwords')
-    parser.add_argument('-m', '--methode', choices=['l','xmlrpc','x','loginpage'], type=str, default='loginpage', help='Choose x=xmlrpc or l=loginpage (=Default)')
+    parser.add_argument('-m', '--methode', choices=['x','xmlrpc','l','loginpage'], type=str, default='loginpage', help='Choose x=xmlrpc or l=loginpage (=Default)')
     parser.add_argument('-o', '--output', nargs='?', default=None, const='wpsername.lst')
     parser.add_argument('-log', '--level', default=20, type=int, help='Set Logging Level')
     args = parser.parse_args()
