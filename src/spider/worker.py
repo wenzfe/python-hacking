@@ -16,12 +16,13 @@ from collections.abc import Iterator
 import asyncio
 
 class Crawled(TypedDict):
-    html: str
+    html: List[str]
     links: List[str]
     css: List[str]
     js: List[str]
     images: List[str]
     images_data: List[str]
+
 
 def crawl_page(url: str) -> Crawled:
     """
@@ -32,7 +33,7 @@ def crawl_page(url: str) -> Crawled:
     r = session.get(url)
 
     return {
-        'html': r.html.html,
+        'html': [r.html.html],
         'links': r.html.absolute_links,
         'css': [e.attrs['href'] for e in r.html.find('link[href$=".css"]')],
         'js': [e.attrs['src'] for e in r.html.find('script[src]')],
@@ -40,8 +41,9 @@ def crawl_page(url: str) -> Crawled:
         'images_data': [e.attrs['src'] for e in r.html.find('img[src^="data:"]')]
     }
 
+
 def fill_queue(origin_url: str, new_urls: List[str], queue: Queue, visited: set, visit_external_url=False):
-    logging.info(f"[{origin_url}] found {len(new_urls)} urls")
+    logging.info(f"{origin_url} found {len(new_urls)} urls")
     for current_link in new_urls:
         link = urlparse(current_link)
         next_url_candidate = f"{link.scheme}://{link.netloc}{link.path}"
@@ -50,7 +52,8 @@ def fill_queue(origin_url: str, new_urls: List[str], queue: Queue, visited: set,
                 logging.debug(f"{origin_url} new queue entry: {next_url_candidate}")
                 queue.put(next_url_candidate)    # add new elements to queue
 
-def store(chunk_iterator: Iterator, name: str, path: str):
+
+def store_stream(chunk_iterator: Iterator, name: str, path: str):
     try:
         with open(os.path.join(path, name), "wb") as file:
             for chunk in chunk_iterator:
@@ -58,6 +61,14 @@ def store(chunk_iterator: Iterator, name: str, path: str):
     except Exception as ecx_write_file:
         logging.error(ecx_write_file)
 
+
+def store_data(data: str, name: str, path: str):
+    try:
+        with open(os.path.join(path, name), "w") as file:
+            file.write(data)
+    except Exception as ecx_write_file:
+        logging.error(ecx_write_file)    
+    
 
 def download_file(url: str, chunk_size=128) -> Iterator: 
     scheme_http = "http:"
@@ -71,6 +82,7 @@ def download_file(url: str, chunk_size=128) -> Iterator:
     else:
         return r.iter_content(chunk_size=chunk_size)
 
+
 def store_data_type_by_url(objects: list, path: str, dir: str):
     """
     Creates a directory and stores the passed data in it.
@@ -79,12 +91,24 @@ def store_data_type_by_url(objects: list, path: str, dir: str):
     os.makedirs(extend_path, exist_ok=True)   # Create Directory for data type
 
     for element in objects:
-        store(download_file(element), str(uuid4()), extend_path)
+        store_stream(download_file(element), str(uuid4()), extend_path)
+
+
+def store_data_type_by_data(objects: list, path: str, dir: str, file_extension: str):
+    """
+
+    """
+    extend_path = os.path.join(path, dir)
+    os.makedirs(extend_path, exist_ok=True)   # Create Directory for data type
+
+    for element in objects:
+        # specify file name + type
+        store_data(element, str(uuid4()) + file_extension, extend_path)
         
 
 
 def thread_worker( url: str, timeout: int, queue: Queue, visited: set, lock: Lock, base_path: str, visit_external_url=False):
-        logging.info(f"[{url}] Start working")
+        logging.info(f"{url} Start working")
         input_url = urlparse(url)
         input_url = f"{input_url.scheme}://{input_url.netloc}/"
         try:                    # crawl the page at the specified url
@@ -101,12 +125,11 @@ def thread_worker( url: str, timeout: int, queue: Queue, visited: set, lock: Loc
                 try:
                     dirname = uuid4()
                     extended_path = os.path.join(base_path, str(dirname))
-                    logging.error(extended_path)
                     os.makedirs(extended_path, exist_ok=True)
 
 
                     # store_data_type(XdataX, "OTHER")
-                    # store_data_type(XdataX, "HTML")
+                    store_data_type_by_data(result_page['html'], extended_path, "HTML", ".html")
                     store_data_type_by_url(result_page['css'], extended_path, "CSS")
                     store_data_type_by_url(result_page['js'], extended_path, "JS")
                     store_data_type_by_url(result_page['images'], extended_path, "IMAGE")
