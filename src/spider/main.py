@@ -20,7 +20,7 @@ import os
 MAX_WORKERS = 5
 REQUEST_TIMEOUT = 60
 LOG_LEVEL = 10
-FORMAT = '[%(asctime)s] [%(levelname)-8s] [%(thread)-6d] [%(threadName)s] [%(message)s]'
+FORMAT = '[%(asctime)s] [%(levelname)-8s] [%(thread)-6d] [%(threadName)-25s] [%(funcName)-15s] [%(message)s]'
 queue_urls = Queue()
 
 # Thread safety
