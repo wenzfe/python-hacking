@@ -43,7 +43,7 @@ def crawl_page(url: str) -> Crawled:
 
 
 def fill_queue(origin_url: str, new_urls: List[str], queue: Queue, visited: set, visit_external_url=False):
-    logging.info(f"{origin_url} found {len(new_urls)} urls")
+    logging.info(f"{origin_url} found {len(new_urls)} URLs")
     for current_link in new_urls:
         link = urlparse(current_link)
         next_url_candidate = f"{link.scheme}://{link.netloc}{link.path}"
@@ -71,7 +71,8 @@ def store_data(data: str, name: str, path: str):
 
 def download_file(url: str, chunk_size=128) -> Iterator: 
     scheme_http = "http:"
-    if not url.startswith(scheme_http):
+    scheme_https = "https:"
+    if not url.startswith(scheme_http) and not url.startswith(scheme_https):
         logging.warning(f"Missing scheme for {url} trying with {scheme_http}")
         url = scheme_http + url
     try:
