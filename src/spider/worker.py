@@ -1,5 +1,7 @@
-import collections
+from collections.abc import Iterator 
+import mimetypes
 from pkgutil import extend_path
+from tkinter import N
 from urllib.parse import urlparse, urlsplit
 from requests_html import HTMLSession
 from threading import Lock
@@ -11,7 +13,6 @@ from requests import get
 from uuid import uuid4
 import os
 
-from collections.abc import Iterator 
 
 import asyncio
 
@@ -39,6 +40,7 @@ def resolve_url(src_url: str, url: str):
         target = target._replace(scheme=src.scheme)
 
     return  target.geturl()
+
 
 def crawl_page(url: str) -> Crawled:
     """
@@ -83,11 +85,15 @@ def store_data(data: str, name: str, path: str):
             file.write(data)
     except Exception as ecx_write_file:
         logging.error(ecx_write_file)    
-    
+
 
 def download_file(url: str, chunk_size=128) -> Iterator: 
+    """
+    (mimetype, stream iterator)
+    """
     scheme_http = "http:"
     scheme_https = "https:"
+    logging.info(f"Attempt download of {url}")
     if not url.startswith(scheme_http) and not url.startswith(scheme_https):
         logging.warning(f"Missing scheme for {url} trying with {scheme_http}")
         url = scheme_http + url
@@ -96,7 +102,14 @@ def download_file(url: str, chunk_size=128) -> Iterator:
     except Exception as exc_download:
         logging.error(exc_download)
     else:
-        return r.iter_content(chunk_size=chunk_size)
+        content_type = r.headers.get('content-type').split(";")[0]
+        guess_mime_type = mimetypes.guess_extension(content_type)
+
+        if guess_mime_type == None:
+            guess_mime_type = ".unknown"
+            logging.warning(f"Encountered unknown mimetype from content-type {content_type} at {url}")
+
+        return (guess_mime_type, r.iter_content(chunk_size=chunk_size))
 
 
 def store_data_type_by_url(objects: list, path: str, dir: str):
@@ -107,7 +120,8 @@ def store_data_type_by_url(objects: list, path: str, dir: str):
     os.makedirs(extend_path, exist_ok=True)   # Create Directory for data type
 
     for element in objects:
-        store_stream(download_file(element), str(uuid4()), extend_path)
+        mimetype, iterator = download_file(element)
+        store_stream(iterator, str(uuid4()) + mimetype, extend_path)
 
 
 def store_data_type_by_data(objects: list, path: str, dir: str, file_extension: str):
@@ -120,7 +134,7 @@ def store_data_type_by_data(objects: list, path: str, dir: str, file_extension: 
     for element in objects:
         # specify file name + type
         store_data(element, str(uuid4()) + file_extension, extend_path)
-        
+
 
 def thread_worker( url: str, timeout: int, queue: Queue, visited: set, lock: Lock, base_path: str, visit_external_url=False):
         logging.info(f"{url} Start working")
