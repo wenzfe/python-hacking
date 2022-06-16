@@ -20,7 +20,7 @@ import os
 MAX_WORKERS = 5
 REQUEST_TIMEOUT = 60
 LOG_LEVEL = 10
-FORMAT = '[%(asctime)s] [%(levelname)-8s] [%(thread)-6d] [%(threadName)-25s] [%(funcName)-15s] [%(message)s]'
+FORMAT = '[%(asctime)s] [%(thread)-6d] [%(threadName)-25s] [%(funcName)-15s] [%(levelname)-8s] [%(message)s]'
 queue_urls = Queue()
 
 # Thread safety
@@ -46,13 +46,14 @@ def main():
             next_url = queue_urls.get()
             logging.info(f"Next job for worker: {next_url}")
             logging.info(f"Number of visited URLs: {len(visited)}")
-            # log queue size
+            logging.info(f"Current queue size: {queue_urls.qsize()}")
+
             # check Thread's for errors and log them
             # use list [e.result() for e in res]
             executor.submit(thread_worker, next_url, REQUEST_TIMEOUT, queue_urls, visited, lock_for_Set, PATH)
 
-            print("queue size:", queue_urls.qsize())
-            print("visited size:", len(visited))
+
+
             sleep(4)
 
             
@@ -64,7 +65,6 @@ def main():
         #         print('%r generated an exception: %s' % (url, exc))
         #     else:
         #         print('%r page is %d bytes' % (url, len(data)))
-
 
 
 if __name__ == '__main__':
