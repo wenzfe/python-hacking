@@ -49,7 +49,6 @@ def fill_queue(origin_url: str, new_urls: List[str], queue: Queue, visited: set,
         next_url_candidate = f"{link.scheme}://{link.netloc}{link.path}"
         if next_url_candidate not in visited:   # prevent revisiting of a url
             if visit_external_url == True or urlparse(origin_url).netloc == link.netloc:
-                logging.debug(f"{origin_url} new queue entry: {next_url_candidate}")
                 queue.put(next_url_candidate)    # add new elements to queue
 
 
