@@ -1,6 +1,6 @@
 import collections
 from pkgutil import extend_path
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlsplit
 from requests_html import HTMLSession
 from threading import Lock
 from queue import Queue
@@ -15,7 +15,7 @@ from collections.abc import Iterator
 
 import asyncio
 
-class Crawled(TypedDict):
+class Crawled(TypedDict):       # Return type of function: crawl_page
     html: List[str]
     links: List[str]
     css: List[str]
@@ -24,9 +24,25 @@ class Crawled(TypedDict):
     images_data: List[str]
 
 
+def resolve_url(src_url: str, url: str):
+    """
+    Take a source URL and resolve other missing parts on the other URL 
+    """
+    
+    src = urlsplit(src_url)._replace(path="")._replace(query="")._replace(fragment="")
+    target = urlsplit(url)
+
+    if target.netloc == '':     # missing domain
+        target = target._replace(netloc=src.netloc)
+    
+    if target.scheme == '':     # missing protocol
+        target = target._replace(scheme=src.scheme)
+
+    return  target.geturl()
+
 def crawl_page(url: str) -> Crawled:
     """
-    Crawl the specivied url, extract html and embedded images and also urls and urls for css, js, images resources. 
+    Crawl the specivied URL. Extract html and embedded images also URLs to other Pages / Websites and URLs to css, js, images resources. 
     """
 
     session = HTMLSession()
@@ -35,9 +51,9 @@ def crawl_page(url: str) -> Crawled:
     return {
         'html': [r.html.html],
         'links': r.html.absolute_links,
-        'css': [e.attrs['href'] for e in r.html.find('link[href$=".css"]')],
-        'js': [e.attrs['src'] for e in r.html.find('script[src]')],
-        'images': [e.attrs['src'] for e in r.html.find('img[src^="http"]')], 
+        'css': [resolve_url(url, e.attrs['href']) for e in r.html.find('link[href$=".css"]')],
+        'js': [resolve_url(url, e.attrs['src']) for e in r.html.find('script[src]')],
+        'images': [resolve_url(url, e.attrs['src']) for e in r.html.find('img[src^="http"]')],
         'images_data': [e.attrs['src'] for e in r.html.find('img[src^="data:"]')]
     }
 
@@ -105,7 +121,6 @@ def store_data_type_by_data(objects: list, path: str, dir: str, file_extension: 
         # specify file name + type
         store_data(element, str(uuid4()) + file_extension, extend_path)
         
-
 
 def thread_worker( url: str, timeout: int, queue: Queue, visited: set, lock: Lock, base_path: str, visit_external_url=False):
         logging.info(f"{url} Start working")
