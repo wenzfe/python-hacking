@@ -6,64 +6,53 @@ from sys import stdout
 from time import sleep
 import argparse
 import logging
-import sys
 import os
 
 # import code
 from worker import thread_worker
 
 
+
 # ToDo: define Request Header
-
-# Thread based Crawler
-
-MAX_WORKERS = 5
-REQUEST_TIMEOUT = 60
-LOG_LEVEL = 10
-FORMAT = '[%(asctime)s] [%(thread)-6d] [%(threadName)-25s] [%(funcName)-15s] [%(levelname)-8s] [%(message)s]'
-queue_urls = Queue()
-
 
 lock_for_Set = Lock()
 visited = set()
-# ToDo: 
-URLS = ['https://www.foxnews.com/' ]
-
-PATH="c:\\Temp"
 
 
-def main():
-    for e in URLS:
+def main(max_workers, visit_external_url, request_proxy, request_timeout, path, urls, url_paths):
+    queue_urls = Queue()
+
+    logging.info(f"Using Configuration max_workers: {max_workers} | request-timeout: {request_timeout} | visit-external-url: {visit_external_url}")
+
+    for e in urls:
         queue_urls.put(e)
 
-    with cf.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+    try:
+        with cf.ThreadPoolExecutor(max_workers=max_workers) as executor:
 
-        # future_to_url = {executor.submit(load_url, url, 60, queue_urls, visited): url for url in URLS}
-        res = []
-        while queue_urls.qsize():
-            sleep(2)
-            next_url = queue_urls.get()
-            logging.info(f"Next job for worker: {next_url}")
-            logging.info(f"Number of visited URLs: {len(visited)}")
-            logging.info(f"Current queue size: {queue_urls.qsize()}")
+            future = []
+            while queue_urls.qsize():
 
-            # check Thread's for errors and log them
-            # use list [e.result() for e in res]
-            executor.submit(thread_worker, next_url, REQUEST_TIMEOUT, queue_urls, visited, lock_for_Set, PATH)
+                next_url = queue_urls.get()
+                logging.info(f"Next job for worker: {next_url}")
+                logging.info(f"Number of visited URLs: {len(visited)}")
+                logging.info(f"Current queue size: {queue_urls.qsize()}")
+
+                # check Thread's for errors and log them
+                # use list [e.result() for e in res]
+
+                future.append(executor.submit(thread_worker, next_url, request_timeout, queue_urls, visited, lock_for_Set, path, visit_external_url))
+                
+                future_completed_iterator = cf.wait(future, return_when=cf.FIRST_COMPLETED)[0]
+                print(future_completed_iterator, "z47")
+
+                for future_element in cf.wait(future, return_when=cf.FIRST_COMPLETED)[0]: # clean list from finished tasks
+                    future.remove(future_element)
+                logging.info(f"Current queue size: (z60) {queue_urls.qsize()}")
 
 
-
-            sleep(4)
-
-            
-        # for future in cf.as_completed(future_to_url):
-        #     url = future_to_url[future]
-        #     try:
-        #         data = future.result()
-        #     except Exception as exc:
-        #         print('%r generated an exception: %s' % (url, exc))
-        #     else:
-        #         print('%r page is %d bytes' % (url, len(data)))
+    except Exception as exc_main:
+        logging.critical(f"main crashed {exc_main}")
 
 
 if __name__ == '__main__':
@@ -101,7 +90,7 @@ if __name__ == '__main__':
     )
 
     # Visit external URL's
-    parser.add_argument('-visit-ext',
+    parser.add_argument('--visit-ext',
         action=argparse.BooleanOptionalAction,
         type=bool,
         default=False,
@@ -117,7 +106,7 @@ if __name__ == '__main__':
 
     # Log level
     parser.add_argument('--log-lvl',
-        default=30,
+        default=0,
         type=int,
         help='The logging level of the script, control the verbosity of output (default: %(default)s)'
     )
@@ -125,18 +114,20 @@ if __name__ == '__main__':
     # Log destination file or console
     parser.add_argument('--log-output',
         nargs='?',
-        default=sys.stdout,
+        default='-',
         type=argparse.FileType('w'),
         help='The logging output destination (default: stdout)'
     )
 
-    parser.add_argument('-urls',
+
+    parser.add_argument('--urls',
         nargs='+',
-        # required=True,
+        required=True,
         metavar='URL',
         type=str,
         help="The URL's to be crawled, in the form http://example.com:80"
     )
+
 
     parser.add_argument('--url-paths',
         nargs='+',
@@ -145,6 +136,7 @@ if __name__ == '__main__':
         help='The paths to also use when starting to performe the crawl. Can be absolute or relative'
     )
 
+
     parser.add_argument('--request-timeout',
         type=int,
         metavar='SEC',
@@ -152,11 +144,13 @@ if __name__ == '__main__':
         help='Number of seconds before request timeout (default: %(default)s)'
     )
 
+
     parser.add_argument('--request-proxy',
         type=str,
         metavar="IP",
         help="Specify a proxy to use as a intermediate for requests"
     )
+
 
     parser.add_argument('--store-data', # allows multiple times the same value!
         nargs='+',
@@ -165,11 +159,13 @@ if __name__ == '__main__':
         help='Select the data types to be stored'
     )
 
+
     args = parser.parse_args()
+    print(args)
 
 
+    FORMAT = '[%(asctime)s] [%(thread)-6d] [%(threadName)-25s] [%(funcName)-15s] [%(levelname)-8s] [%(message)s]'
+    logging.basicConfig(stream=args.log_output, encoding='utf-8', format=FORMAT, level=args.log_lvl)
 
 
-    logging.basicConfig(filemode="w", filename="spider.log", encoding='utf-8', format=FORMAT, level=LOG_LEVEL)
-    # stream=sys.stdout, 
-    main()
+    main(args.worker, args.visit_ext, args.request_proxy, args.request_timeout, args.path, args.urls, args.url_paths)
