@@ -14,7 +14,6 @@ from uuid import uuid4
 import os
 
 
-import asyncio
 
 class Crawled(TypedDict):       # Return type of function: crawl_page
     html: List[str]
@@ -60,14 +59,21 @@ def crawl_page(url: str) -> Crawled:
     }
 
 
-def fill_queue(origin_url: str, new_urls: List[str], queue: Queue, visited: set, visit_external_url=False):
+def fill_queue(origin_url: str, new_urls: List[str], queue: Queue, visited: set, lock: Lock, visit_external_url=False):
     logging.info(f"{origin_url} found {len(new_urls)} URLs")
-    for current_link in new_urls:
-        link = urlparse(current_link)
-        next_url_candidate = f"{link.scheme}://{link.netloc}{link.path}"
-        if next_url_candidate not in visited:   # prevent revisiting of a url
-            if visit_external_url == True or urlparse(origin_url).netloc == link.netloc:
-                queue.put(next_url_candidate)    # add new elements to queue
+    try:
+        for current_link in new_urls:
+            link = urlparse(current_link)
+            next_url_candidate = f"{link.scheme}://{link.netloc}{link.path}"
+            with lock:
+                if next_url_candidate not in visited:   # prevent revisiting of a url
+                    logging.info(f"CHECK {link.netloc.endswith(urlparse(origin_url).netloc)} <= {urlparse(origin_url).netloc} == {link.netloc}")
+                    
+                    if visit_external_url or link.netloc.endswith(urlparse(origin_url).netloc):
+                        queue.put(next_url_candidate)    # add new elements to queue
+                        logging.info(f"{queue.qsize()} {next_url_candidate}")
+    except Exception as exc_fill_queue:
+        logging.critical(f"Encountered error while trying to fill the queue {exc_fill_queue}")
 
 
 def store_stream(chunk_iterator: Iterator, name: str, path: str):
@@ -116,24 +122,31 @@ def store_data_type_by_url(objects: list, path: str, dir: str):
     """
     Creates a directory and stores the passed data in it.
     """
-    extend_path = os.path.join(path, dir)
-    os.makedirs(extend_path, exist_ok=True)   # Create Directory for data type
+    try:
+        extend_path = os.path.join(path, dir)
+        os.makedirs(extend_path, exist_ok=True)   # Create Directory for data type
+    except Exception as exc_create_dir:
+        logging.critical(f"Encountered error while attempting to create a directory: {exc_create_dir}")
+    else:
 
-    for element in objects:
-        mimetype, iterator = download_file(element)
-        store_stream(iterator, str(uuid4()) + mimetype, extend_path)
+        for element in objects:
+            mimetype, iterator = download_file(element)
+            store_stream(iterator, str(uuid4()) + mimetype, extend_path)
 
 
 def store_data_type_by_data(objects: list, path: str, dir: str, file_extension: str):
     """
 
     """
-    extend_path = os.path.join(path, dir)
-    os.makedirs(extend_path, exist_ok=True)   # Create Directory for data type
-
-    for element in objects:
-        # specify file name + type
-        store_data(element, str(uuid4()) + file_extension, extend_path)
+    try:
+        extend_path = os.path.join(path, dir)
+        os.makedirs(extend_path, exist_ok=True)   # Create Directory for data type
+    except Exception as exc_create_dir:
+        logging.critical(f"Encountered error while attempting to create a directory: {exc_create_dir}")
+    else:
+        for element in objects:
+            # specify file name + type
+            store_data(element, str(uuid4()) + file_extension, extend_path)
 
 
 def thread_worker( url: str, timeout: int, queue: Queue, visited: set, lock: Lock, base_path: str, visit_external_url=False):
@@ -146,7 +159,7 @@ def thread_worker( url: str, timeout: int, queue: Queue, visited: set, lock: Loc
             logging.error(exc_crawl_page)
         else:
             try:                # fill queue
-                fill_queue(url, result_page['links'], queue, visited, visit_external_url)                
+                fill_queue(url, result_page['links'], queue, visited, lock, visit_external_url)                
             except Exception as exc_fill_queue:
                 logging.error(exc_fill_queue)
             else:
