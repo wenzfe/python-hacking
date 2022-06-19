@@ -7,6 +7,7 @@ from time import sleep
 import argparse
 import logging
 import os
+from urllib.parse import urlparse
 
 # import code
 from worker import thread_worker
@@ -19,13 +20,19 @@ lock_for_Set = Lock()
 visited = set()
 
 
-def main(max_workers, visit_external_url, request_proxy, request_timeout, path, urls, url_paths):
+def main(max_workers: int, visit_external_url: bool, request_proxy, request_timeout: int, path, store_data: set, urls: list, url_paths: list):
     queue_urls = Queue()
 
     logging.info(f"Using Configuration max_workers: {max_workers} | request-timeout: {request_timeout} | visit-external-url: {visit_external_url}")
 
-    for e in urls:
-        queue_urls.put(e)
+    for url in urls:            # add URL's to queue
+        queue_urls.put(url)
+
+    for path in url_paths:      # add paths to URL's and add them to the queue
+        for url in urls:
+            assemble_url = urlparse(url)._replace(path=urlparse(path).path).geturl()
+            queue_urls.put(assemble_url)
+
 
     try:
         with cf.ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -55,8 +62,7 @@ def main(max_workers, visit_external_url, request_proxy, request_timeout, path, 
         logging.critical(f"main crashed {exc_main}")
 
 
-if __name__ == '__main__':
-
+def commandline_input():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="""
@@ -76,50 +82,6 @@ if __name__ == '__main__':
 
     )
 
-    # Software Version
-    parser.add_argument('-v', '--version', action='version', 
-        version='%(prog)s version: 1.0 \n  https://www.github.com/wenzfe/python-hacking'
-    )
-
-    # Number of workers
-    parser.add_argument('-w', '--worker',
-        default=5,
-        type=int,
-        metavar='N',
-        help='Number of workers / threads to use (default: %(default)s)',
-    )
-
-    # Visit external URL's
-    parser.add_argument('--visit-ext',
-        action=argparse.BooleanOptionalAction,
-        type=bool,
-        default=False,
-        help='Set flag to visit external URLs (default: %(default)s)'
-    )
-
-    # Path Data Storage
-    parser.add_argument('-p', '--path',
-        default=os.getcwd(),
-        nargs='?',
-        help='The location on your system to store the data (default: %(default)s)'
-    )
-
-    # Log level
-    parser.add_argument('--log-lvl',
-        default=0,
-        type=int,
-        help='The logging level of the script, control the verbosity of output (default: %(default)s)'
-    )
-
-    # Log destination file or console
-    parser.add_argument('--log-output',
-        nargs='?',
-        default='-',
-        type=argparse.FileType('w'),
-        help='The logging output destination (default: stdout)'
-    )
-
-
     parser.add_argument('--urls',
         nargs='+',
         required=True,
@@ -133,7 +95,58 @@ if __name__ == '__main__':
         nargs='+',
         type=str,
         metavar='PATH',
-        help='The paths to also use when starting to performe the crawl. Can be absolute or relative'
+        help='A file containing the paths to use when starting to performe the crawl.'
+    )
+
+
+    # Visit external URL's
+    parser.add_argument('--visit-ext',
+        action=argparse.BooleanOptionalAction,
+        type=bool,
+        default=False,
+        help='Set flag to visit external URLs (default: %(default)s)'
+    )
+
+
+    # Number of workers
+    parser.add_argument('-w', '--worker',
+        default=5,
+        type=int,
+        metavar='N',
+        help='Number of workers / threads to use (default: %(default)s)',
+    )
+
+
+    # Path Data Storage
+    parser.add_argument('-p', '--path',
+        default=os.getcwd(),
+        nargs='?',
+        help='The location on your system to store the data (default: %(default)s)'
+    )
+
+
+    parser.add_argument('--store-data', # allows multiple times the same value!
+        nargs='+',
+        choices=['OTHER', 'HTML', 'JS', 'CSS', 'IMAGE'],
+        default=['OTHER', 'HTML', 'JS', 'CSS', 'IMAGE'],
+        help='Select the data types to be stored'
+    )
+
+
+    # Log level
+    parser.add_argument('--log-lvl',
+        default=0,
+        type=int,
+        help='The logging level of the script, control the verbosity of output (default: %(default)s)'
+    )
+
+
+    # Log destination file or console
+    parser.add_argument('--log-output',
+        nargs='?',
+        default='-',
+        type=argparse.FileType('w'),
+        help='The logging output destination (default: stdout)'
     )
 
 
@@ -152,20 +165,29 @@ if __name__ == '__main__':
     )
 
 
-    parser.add_argument('--store-data', # allows multiple times the same value!
-        nargs='+',
-        choices=['OTHER', 'HTML', 'JS', 'CSS', 'IMAGE'],
-        default=['OTHER', 'HTML', 'JS', 'CSS', 'IMAGE'],
-        help='Select the data types to be stored'
+    # Software Version
+    parser.add_argument('-v', '--version', action='version', 
+        version='%(prog)s version: 1.0 \n  https://www.github.com/wenzfe/python-hacking'
     )
 
-
-    args = parser.parse_args()
-    print(args)
+    return parser.parse_args()
 
 
+
+if __name__ == '__main__':
+
+    args = commandline_input()
+    
     FORMAT = '[%(asctime)s] [%(thread)-6d] [%(threadName)-25s] [%(funcName)-15s] [%(levelname)-8s] [%(message)s]'
     logging.basicConfig(stream=args.log_output, encoding='utf-8', format=FORMAT, level=args.log_lvl)
 
+    logging.info(f"Supplied command line arguments: {args}")
 
-    main(args.worker, args.visit_ext, args.request_proxy, args.request_timeout, args.path, args.urls, args.url_paths)
+    # if specified read url-path file
+    url_paths = []
+    if args.url_paths != None:
+        with open(args.url_paths, "r") as f:
+            url_paths = f.read().splitlines()
+    
+
+    main(args.worker, args.visit_ext, args.request_proxy, args.request_timeout, args.path, set(args.store_data), args.urls, url_paths)
