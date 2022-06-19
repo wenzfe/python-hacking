@@ -153,7 +153,7 @@ def store_data_type_by_data(objects: list, path: str, dir: str, file_extension: 
             store_data(element, str(uuid4()) + file_extension, extend_path)
 
 
-def thread_worker( url: str, timeout: int, queue: Queue, visited: set, lock: Lock, base_path: str, visit_external_url=False):
+def thread_worker( url: str, timeout: int, queue: Queue, visited: set, lock: Lock, base_path: str, store_data: set, visit_external_url=False):
         logging.info(f"{url} Start working")
         input_url = urlparse(url)
         input_url = f"{input_url.scheme}://{input_url.netloc}/"
@@ -176,11 +176,22 @@ def thread_worker( url: str, timeout: int, queue: Queue, visited: set, lock: Loc
                     with open(os.path.join(extended_path, "page.txt"), "w") as file:
                         file.write(url)
 
+
                     # store_data_type(XdataX, "OTHER")
-                    store_data_type_by_data(result_page['html'], extended_path, "HTML", ".html")
-                    store_data_type_by_url(result_page['css'], extended_path, "CSS")
-                    store_data_type_by_url(result_page['js'], extended_path, "JS")
-                    store_data_type_by_url(result_page['images'], extended_path, "IMAGE")
+                    
+                    if 'HTML' in store_data:
+                        store_data_type_by_data(result_page['html'], extended_path, "HTML", ".html")
+
+                    if 'CSS' in store_data:
+                        store_data_type_by_url(result_page['css'], extended_path, "CSS")
+
+                    if 'JS' in store_data:
+                        store_data_type_by_url(result_page['js'], extended_path, "JS")
+
+                    if 'IMAGE' in store_data:
+                        store_data_type_by_url(result_page['images'], extended_path, "IMAGE")
+
+
                     # 
                 except Exception as exc_store_data:
                     logging.error(exc_store_data)

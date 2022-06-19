@@ -48,7 +48,7 @@ def main(max_workers: int, visit_external_url: bool, request_proxy, request_time
                 # check Thread's for errors and log them
                 # use list [e.result() for e in res]
 
-                future.append(executor.submit(thread_worker, next_url, request_timeout, queue_urls, visited, lock_for_Set, path, visit_external_url))
+                future.append(executor.submit(thread_worker, next_url, request_timeout, queue_urls, visited, lock_for_Set, path, store_data, visit_external_url))
                 
                 future_completed_iterator = cf.wait(future, return_when=cf.FIRST_COMPLETED)[0]
                 print(future_completed_iterator, "z47")
