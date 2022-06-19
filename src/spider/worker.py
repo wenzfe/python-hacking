@@ -169,16 +169,18 @@ def thread_worker( url: str, timeout: int, queue: Queue, visited: set, lock: Loc
             else:
 
                 try:
-                    dirname = uuid4()
-                    extended_path = os.path.join(base_path, str(dirname))
-                    os.makedirs(extended_path, exist_ok=True)
 
-                    with open(os.path.join(extended_path, "page.txt"), "w") as file:
-                        file.write(url)
+                    if len(store_data) != 0:
+                        dirname = uuid4()
+                        extended_path = os.path.join(base_path, str(dirname))
+                        os.makedirs(extended_path, exist_ok=True)
 
+                    if 'LINK' in store_data:
+                        with open(os.path.join(extended_path, "page.txt"), "w") as file:
+                            file.write(url)
 
                     # store_data_type(XdataX, "OTHER")
-                    
+
                     if 'HTML' in store_data:
                         store_data_type_by_data(result_page['html'], extended_path, "HTML", ".html")
 
@@ -192,7 +194,6 @@ def thread_worker( url: str, timeout: int, queue: Queue, visited: set, lock: Loc
                         store_data_type_by_url(result_page['images'], extended_path, "IMAGE")
 
 
-                    # 
                 except Exception as exc_store_data:
                     logging.error(exc_store_data)
                 else:

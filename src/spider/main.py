@@ -50,12 +50,8 @@ def main(max_workers: int, visit_external_url: bool, request_proxy, request_time
 
                 future.append(executor.submit(thread_worker, next_url, request_timeout, queue_urls, visited, lock_for_Set, path, store_data, visit_external_url))
                 
-                future_completed_iterator = cf.wait(future, return_when=cf.FIRST_COMPLETED)[0]
-                print(future_completed_iterator, "z47")
-
                 for future_element in cf.wait(future, return_when=cf.FIRST_COMPLETED)[0]: # clean list from finished tasks
                     future.remove(future_element)
-                logging.info(f"Current queue size: (z60) {queue_urls.qsize()}")
 
 
     except Exception as exc_main:
@@ -126,9 +122,9 @@ def commandline_input():
 
 
     parser.add_argument('--store-data', # allows multiple times the same value!
-        nargs='+',
-        choices=['OTHER', 'HTML', 'JS', 'CSS', 'IMAGE'],
-        default=['OTHER', 'HTML', 'JS', 'CSS', 'IMAGE'],
+        nargs='*',
+        choices=['OTHER', 'HTML', 'JS', 'CSS', 'IMAGE', 'LINK'],
+        default=['OTHER', 'HTML', 'JS', 'CSS', 'IMAGE', 'LINK'],
         help='Select the data types to be stored'
     )
 
