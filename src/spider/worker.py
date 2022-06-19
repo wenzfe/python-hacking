@@ -1,13 +1,11 @@
-from collections.abc import Iterator 
-import mimetypes
-from pkgutil import extend_path
-from tkinter import N
 from urllib.parse import urlparse, urlsplit
 from requests_html import HTMLSession
+from collections.abc import Iterator 
+from typing import TypedDict, List
 from threading import Lock
 from queue import Queue
+import mimetypes
 import logging
-from typing import TypedDict, List
 from re import fullmatch, match
 from requests import get
 from uuid import uuid4
@@ -60,18 +58,24 @@ def crawl_page(url: str) -> Crawled:
 
 
 def fill_queue(origin_url: str, new_urls: List[str], queue: Queue, visited: set, lock: Lock, visit_external_url=False):
-    logging.info(f"{origin_url} found {len(new_urls)} URLs")
+    logging.debug(f"{origin_url} found {len(new_urls)} URLs")
     try:
         for current_link in new_urls:
             link = urlparse(current_link)
             next_url_candidate = f"{link.scheme}://{link.netloc}{link.path}"
+
             with lock:
-                if next_url_candidate not in visited:   # prevent revisiting of a url
-                    logging.info(f"CHECK {link.netloc.endswith(urlparse(origin_url).netloc)} <= {urlparse(origin_url).netloc} == {link.netloc}")
-                    
-                    if visit_external_url or link.netloc.endswith(urlparse(origin_url).netloc):
-                        queue.put(next_url_candidate)    # add new elements to queue
-                        logging.info(f"{queue.qsize()} {next_url_candidate}")
+                is_next_url_candidate_in_visited = next_url_candidate not in visited
+                is_subdomain = link.netloc.endswith(urlparse(origin_url).netloc)
+
+                add_entry = ( is_next_url_candidate_in_visited and ( visit_external_url or is_subdomain ) )
+                logging.info(f"Checking {next_url_candidate} adding {add_entry}: is visited: {is_next_url_candidate_in_visited} AND ( allow external URL: {visit_external_url} OR is subdomain: {is_subdomain} )")
+                # prevent revisiting of a URL   AND   ( external URL    OR  subdomain )
+                if add_entry:
+                    queue.put(next_url_candidate)    # add new elements to queue
+
+
+
     except Exception as exc_fill_queue:
         logging.critical(f"Encountered error while trying to fill the queue {exc_fill_queue}")
 
@@ -87,8 +91,8 @@ def store_stream(chunk_iterator: Iterator, name: str, path: str):
 
 def store_data(data: str, name: str, path: str):
     try:
-        with open(os.path.join(path, name), "w") as file:
-            file.write(data)
+        with open(os.path.join(path, name), "bw") as file:
+            file.write(data.encode())
     except Exception as ecx_write_file:
         logging.error(ecx_write_file)    
 
@@ -169,6 +173,8 @@ def thread_worker( url: str, timeout: int, queue: Queue, visited: set, lock: Loc
                     extended_path = os.path.join(base_path, str(dirname))
                     os.makedirs(extended_path, exist_ok=True)
 
+                    with open(os.path.join(extended_path, "page.txt"), "w") as file:
+                        file.write(url)
 
                     # store_data_type(XdataX, "OTHER")
                     store_data_type_by_data(result_page['html'], extended_path, "HTML", ".html")
