@@ -45,7 +45,7 @@ def crawl_page(url: str, timeout: int, proxy: dict) -> Crawled:
     """
 
     session = HTMLSession()
-    r = session.get(url)
+    r = session.get(url, timeout=timeout, proxies=proxy, verify=False)
 
     return {
         'html': [r.html.html],
@@ -108,7 +108,7 @@ def download_file(url: str, timeout: int, proxy: dict, chunk_size=128) -> Iterat
         logging.warning(f"Missing scheme for {url} trying with {scheme_http}")
         url = scheme_http + url
     try:
-        r = get(url)
+        r = get(url, timeout=timeout, proxies=proxy, verify=False)
     except Exception as exc_download:
         logging.error(exc_download)
     else:
