@@ -31,7 +31,6 @@ def parse_html():
         for file in os.listdir(html_path):
             if os.path.isfile(html_path+file):
                 if '.html' in file:
-                    print(file)
                     with open(html_path+file) as f:
                         html_code = f.read()
                     regex_passwords_html = re.compile(regex_length)
@@ -47,18 +46,28 @@ def leetspeak():
         tmp.update(leet_words)
     PASSWORD_LIST.update(tmp)
 
-def crate_pw_list():
+def crate_pw_list(min_frequency, max_frequency):
     global PASSWORD_LIST
     average = sum(SORT_COUNT.values())/len(SORT_COUNT)
     average = round(average, 2)
+    import pandas as pd
+    pd.set_option("display.max_rows", None, "display.max_columns", None)
+    #data = {'Name': ['a', 'b', 'c'], 'Age': [10, 11, 12]}
+    df = pd.DataFrame(SORT_COUNT, index=[0]).T.rename_axis('Word',"test").reset_index()
+    df.head()
+    print(df)
+
+    #print(SORT_COUNT)
     while True:
+        print(f'The words have a frequency of {min_frequency} to {max_frequency}. Use 0 to take all words.')
         print(f'Most words appear {average} times on average')
-        num = input("Use words that occur >= ")
+        num = input("Use words that have a frequency >= ")
         if num.isdigit():
             break
     for key,value in SORT_COUNT.items():
-        if value >= int(num):
-            #print(key,value)
+        if num != 0:
+            PASSWORD_LIST.add(key)
+        elif value >= int(num):
             PASSWORD_LIST.add(key)
         else:
             break
@@ -70,13 +79,11 @@ def main():
         parse_html()
         for k in sorted(COUNT, key=COUNT.get, reverse=True): #sort dict
             SORT_COUNT[k] = COUNT[k]
-        crate_pw_list()
-
+        crate_pw_list(min(SORT_COUNT.values()), max(SORT_COUNT.values()))
     if args.leetspeak:
         leetspeak()
     print("\n--- PASSWORD LIST ---")
     print(PASSWORD_LIST)
-
 
     with open(args.output, 'w') as f:
         for word in PASSWORD_LIST:
@@ -107,10 +114,15 @@ if __name__ == '__main__':
             for match in re.finditer(pattern_length, word): # take words with length
                 PASSWORD_LIST.add(match.group().replace('\n',''))
       
-    print(PASSWORD_LIST)
-    exit()
-
+    #print(PASSWORD_LIST)
+    
     logging.basicConfig(stream=sys.stdout, encoding='utf-8', format=FORMAT, level=args.level)
+
+    #import pandas as pd
+    #data = {'Name': ['a', 'b', 'c'], 'Age': [10, 11, 12]}
+    #df = pd.DataFrame(data)
+    #print(df)
+    #exit()
     main()
 
 
