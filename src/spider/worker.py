@@ -39,7 +39,7 @@ def resolve_url(src_url: str, url: str):
     return  target.geturl()
 
 
-def crawl_page(url: str) -> Crawled:
+def crawl_page(url: str, timeout: int, proxy: dict) -> Crawled:
     """
     Crawl the specivied URL. Extract html and embedded images also URLs to other Pages / Websites and URLs to css, js, images resources. 
     """
@@ -97,7 +97,7 @@ def store_data(data: str, name: str, path: str):
         logging.error(ecx_write_file)    
 
 
-def download_file(url: str, chunk_size=128) -> Iterator: 
+def download_file(url: str, timeout: int, proxy: dict, chunk_size=128) -> Iterator: 
     """
     (mimetype, stream iterator)
     """
@@ -122,7 +122,7 @@ def download_file(url: str, chunk_size=128) -> Iterator:
         return (guess_mime_type, r.iter_content(chunk_size=chunk_size))
 
 
-def store_data_type_by_url(objects: list, path: str, dir: str):
+def store_data_type_by_url(objects: list, path: str, dir: str, timeout, proxy):
     """
     Creates a directory and stores the passed data in it.
     """
@@ -134,7 +134,7 @@ def store_data_type_by_url(objects: list, path: str, dir: str):
     else:
 
         for element in objects:
-            mimetype, iterator = download_file(element)
+            mimetype, iterator = download_file(element, timeout, proxy)
             store_stream(iterator, str(uuid4()) + mimetype, extend_path)
 
 
@@ -153,12 +153,12 @@ def store_data_type_by_data(objects: list, path: str, dir: str, file_extension: 
             store_data(element, str(uuid4()) + file_extension, extend_path)
 
 
-def thread_worker( url: str, timeout: int, queue: Queue, visited: set, lock: Lock, base_path: str, store_data: set, visit_external_url=False):
+def thread_worker( url: str, proxy: dict, timeout: int, queue: Queue, visited: set, lock: Lock, base_path: str, store_data: set, visit_external_url=False):
         logging.info(f"{url} Start working")
         input_url = urlparse(url)
         input_url = f"{input_url.scheme}://{input_url.netloc}/"
         try:                    # crawl the page at the specified url
-            result_page = crawl_page(url) 
+            result_page = crawl_page(url, timeout, proxy) 
         except Exception as exc_crawl_page:
             logging.error(exc_crawl_page)
         else:
@@ -185,13 +185,13 @@ def thread_worker( url: str, timeout: int, queue: Queue, visited: set, lock: Loc
                         store_data_type_by_data(result_page['html'], extended_path, "HTML", ".html")
 
                     if 'CSS' in store_data:
-                        store_data_type_by_url(result_page['css'], extended_path, "CSS")
+                        store_data_type_by_url(result_page['css'], extended_path, "CSS", timeout, proxy)
 
                     if 'JS' in store_data:
-                        store_data_type_by_url(result_page['js'], extended_path, "JS")
+                        store_data_type_by_url(result_page['js'], extended_path, "JS", timeout, proxy)
 
                     if 'IMAGE' in store_data:
-                        store_data_type_by_url(result_page['images'], extended_path, "IMAGE")
+                        store_data_type_by_url(result_page['images'], extended_path, "IMAGE", timeout, proxy)
 
 
                 except Exception as exc_store_data:

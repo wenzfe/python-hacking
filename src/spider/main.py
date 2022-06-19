@@ -7,6 +7,7 @@ from time import sleep
 import argparse
 import logging
 import os
+import json
 from urllib.parse import urlparse
 
 # import code
@@ -23,7 +24,7 @@ visited = set()
 def main(max_workers: int, visit_external_url: bool, request_proxy, request_timeout: int, path, store_data: set, urls: list, url_paths: list):
     queue_urls = Queue()
 
-    logging.info(f"Using Configuration max_workers: {max_workers} | request-timeout: {request_timeout} | visit-external-url: {visit_external_url}")
+    logging.info(f"Using Configuration max_workers: {max_workers} | request-timeout: {request_timeout} | proxys: {request_proxy} | visit-external-url: {visit_external_url}")
 
     for url in urls:            # add URL's to queue
         queue_urls.put(url)
@@ -48,7 +49,7 @@ def main(max_workers: int, visit_external_url: bool, request_proxy, request_time
                 # check Thread's for errors and log them
                 # use list [e.result() for e in res]
 
-                future.append(executor.submit(thread_worker, next_url, request_timeout, queue_urls, visited, lock_for_Set, path, store_data, visit_external_url))
+                future.append(executor.submit(thread_worker, next_url, request_proxy, request_timeout, queue_urls, visited, lock_for_Set, path, store_data, visit_external_url))
                 
                 for future_element in cf.wait(future, return_when=cf.FIRST_COMPLETED)[0]: # clean list from finished tasks
                     future.remove(future_element)
@@ -131,7 +132,7 @@ def commandline_input():
 
     # Log level
     parser.add_argument('--log-lvl',
-        default=0,
+        default=30,
         type=int,
         help='The logging level of the script, control the verbosity of output (default: %(default)s)'
     )
@@ -156,8 +157,8 @@ def commandline_input():
 
     parser.add_argument('--request-proxy',
         type=str,
-        metavar="IP",
-        help="Specify a proxy to use as a intermediate for requests"
+        metavar="JSON",
+        help="Specify a json file containing the proxy to use as a intermediate for requests"
     )
 
 
@@ -177,7 +178,7 @@ if __name__ == '__main__':
     FORMAT = '[%(asctime)s] [%(thread)-6d] [%(threadName)-25s] [%(funcName)-15s] [%(levelname)-8s] [%(message)s]'
     logging.basicConfig(stream=args.log_output, encoding='utf-8', format=FORMAT, level=args.log_lvl)
 
-    logging.info(f"Supplied command line arguments: {args}")
+    logging.debug(f"Supplied command line arguments: {args}")
 
     # if specified read url-path file
     url_paths = []
@@ -185,5 +186,11 @@ if __name__ == '__main__':
         with open(args.url_paths, "r") as f:
             url_paths = f.read().splitlines()
     
+    # if specified read proxy file
+    proxy = None
+    if args.request_proxy != None:
+        with open(args.request_proxy, "r") as f:
+            proxy = json.loads(f.read())
+        
 
-    main(args.worker, args.visit_ext, args.request_proxy, args.request_timeout, args.path, set(args.store_data), args.urls, url_paths)
+    main(args.worker, args.visit_ext, proxy, args.request_timeout, args.path, set(args.store_data), args.urls, url_paths)
