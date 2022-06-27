@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-
+import pandas as pd
 from bs4 import BeautifulSoup
-import os, re
-import argparse, logging, sys
+import argparse, logging, sys, os, re
 from itertools import product
 
 FORMAT = '[%(asctime)s] [%(levelname)-8s] [%(message)s]'
@@ -17,13 +16,29 @@ LEET_REPLACE = {
         'i': '1', 'L': '1',
         'o': '0', 'O': '0'
     }
+SPECIAL_CHAR = ['!','?','$']
+
+def pw_output():
+    file = f'{args.outputPw}_{str(len(PASSWORD_LIST))}.lst'
+    with open(file, 'w') as f:
+        for word in PASSWORD_LIST:
+            f.write(word+'\n')
+        f.close()
+    logging.info(f'Crated file: {file}')
+
+def pd_output(df):
+    file = f'{args.outputCvs}_{str(len(SORT_COUNT))}.csv'
+    pd.set_option("display.max_rows", None, "display.max_columns", None)
+    df.to_csv(file, sep='\t', encoding='utf-8')
+    logging.info(f'Crated file: {file}')
 
 def word_count(word):
     global COUNT
-    if word in COUNT:
-        COUNT[word] += 1
-    else:
-        COUNT[word] = 1
+    if word:
+        if word in COUNT:
+            COUNT[word] += 1
+        else:
+            COUNT[word] = 1
 
 def parse_html():
     for page in os.listdir(args.dirpath):
@@ -33,11 +48,12 @@ def parse_html():
                 if '.html' in file:
                     with open(html_path+file) as f:
                         html_code = f.read()
-                    regex_passwords_html = re.compile(regex_length)
                     soup = BeautifulSoup(html_code, "html.parser")
-                    for password in  regex_passwords_html.findall(soup.text):
-                        word_count(password)
-
+                    regex_length = "[.\S]{%s,%s}" % (args.length[ 0], args.length[1])
+                    regex_passwords_html = re.compile(regex_length)
+                    for word in  regex_passwords_html.findall(soup.text):
+                        word_count(word)
+                
 def leetspeak():
     global PASSWORD_LIST
     tmp = set()
@@ -46,33 +62,76 @@ def leetspeak():
         tmp.update(leet_words)
     PASSWORD_LIST.update(tmp)
 
+def special_char():
+    global PASSWORD_LIST
+    tmp = set()
+    for word in PASSWORD_LIST:
+        for char in SPECIAL_CHAR:
+            tmp.add(word+char)
+    PASSWORD_LIST.update(tmp)
+
 def crate_pw_list(min_frequency, max_frequency):
     global PASSWORD_LIST
     average = sum(SORT_COUNT.values())/len(SORT_COUNT)
     average = round(average, 2)
-    import pandas as pd
-    pd.set_option("display.max_rows", None, "display.max_columns", None)
-    #data = {'Name': ['a', 'b', 'c'], 'Age': [10, 11, 12]}
-    df = pd.DataFrame(SORT_COUNT, index=[0]).T.rename_axis('Word',"test").reset_index()
+    df = pd.DataFrame(SORT_COUNT, index=['Count']).T.rename_axis('Word').reset_index()
+    df.index += 1
     df.head()
     print(df)
-
-    #print(SORT_COUNT)
-    while True:
-        print(f'The words have a frequency of {min_frequency} to {max_frequency}. Use 0 to take all words.')
-        print(f'Most words appear {average} times on average')
-        num = input("Use words that have a frequency >= ")
-        if num.isdigit():
+    pd_output(df)
+    symbole, option, num = '','',1
+    print(f'The words have a frequency of {min_frequency} to {max_frequency}. Use 0 to take all words.')
+    print(f'Most words appear {average} times on average')
+    print('[?] Input Form: \n  - All Words = 0\n  - Words with [<,>,=] number\n  - Count Words with frequency = ? number\n')
+    while option.lower() != 'exit':
+        option = input("Input: ")
+        try:
+            symbole = option.split(' ')[0]
+            num = option.split(' ')[1]
+            if symbole == '?':
+                print(f'[?] There are {len([value for key,value in SORT_COUNT.items() if value==int(num)])} words that appear {num} times')
+                continue
+            option = num            
+        except:
+            continue
+        if option.isdigit() and symbole != '?': # and not symbole.isdigit():
+            num = option
             break
-    for key,value in SORT_COUNT.items():
-        if num != 0:
+    if int(num) == 0:
+        for key,value in SORT_COUNT.items():
             PASSWORD_LIST.add(key)
-        elif value >= int(num):
-            PASSWORD_LIST.add(key)
-        else:
-            break
+    elif symbole == '=' or symbole == '==':
+        for key,value in SORT_COUNT.items():
+            if  value == int(num):
+                PASSWORD_LIST.add(key)
+    elif symbole == '<':
+        for key,value in SORT_COUNT.items():
+            if  value < int(num):
+                PASSWORD_LIST.add(key)
+    elif symbole == '>':
+        for key,value in SORT_COUNT.items():
+            if  value > int(num):
+                PASSWORD_LIST.add(key)
+    elif symbole == '<=':
+        for key,value in SORT_COUNT.items():
+            if  value <= int(num):
+                PASSWORD_LIST.add(key)
+    elif symbole == '>=':
+        for key,value in SORT_COUNT.items():
+            if  value >= int(num):
+                PASSWORD_LIST.add(key)
+    else:
+        exit()
 
 def main():
+    for password_list in args.passwordlist:
+        print(password_list)
+        for word in open(password_list):
+            word = word.replace('\n','')
+            if len(word) >= args.length[0] and len(word) <= args.length[1]:
+                print(word)
+                PASSWORD_LIST.add(word)
+
     print("\n| Start Selenium Script")
     if args.dirpath:
         args.dirpath = args.dirpath.rstrip('/')
@@ -80,50 +139,36 @@ def main():
         for k in sorted(COUNT, key=COUNT.get, reverse=True): #sort dict
             SORT_COUNT[k] = COUNT[k]
         crate_pw_list(min(SORT_COUNT.values()), max(SORT_COUNT.values()))
+
     if args.leetspeak:
         leetspeak()
-    print("\n--- PASSWORD LIST ---")
-    print(PASSWORD_LIST)
+    if args.specialchar:
+        special_char()
 
-    with open(args.output, 'w') as f:
-        for word in PASSWORD_LIST:
-            f.write("%s\n" % word)
-    logging.info(f'Crate password file: {args.output} with {len(PASSWORD_LIST)}')
+    #print("\n--- PASSWORD LIST ---")
+    #print(PASSWORD_LIST)
+
+    pw_output()
+
     print("\n| End")
    
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = '')
-    #group_password = parser.add_mutually_exclusive_group(required=True)
-    parser.add_argument('-dp', '--dirpath', type=str, help='Absolute path to /root/ Directory')
-    parser.add_argument('-p', '--passwordlist', nargs='*', default=[], type=str, help='One or more lists with Passwords')
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-dp', '--dirpath', type=str, help='Absolute path to /root/ Directory')
+    group.add_argument('-p', '--passwordlist', nargs='*', default=[], type=str, help='One or more lists with Passwords')
 
-    parser.add_argument('-ls', '--leetspeak', action='store_true', default=False, help='Flag LeetSpeak')
-   
-    parser.add_argument('-l', '--length', nargs=2, default=[6,14], type=int, help='Min and Max Word length in Passwordlist')
+    parser.add_argument('-sc', '--specialchar', action='store_true', default=False, help='Flag special character')
+    parser.add_argument('-ls', '--leetspeak', action='store_true', default=False, help='Flag Leetspeak')
+    parser.add_argument('-l', '--length', nargs=2, default=[4,16], type=int, help='Min and Max Word length in Passwordlist')
 
-    parser.add_argument('-o', '--output', nargs='?', default='coll_password.lst', help='Output file for valide usernames')
+    parser.add_argument('-opw', '--outputPw', nargs='?', default='wordlist', help='Output File Name for Passwordlist')
+    parser.add_argument('-ocvs', '--outputCvs', nargs='?', default='count', help='Output File Name for Counted Words overview')
     parser.add_argument('-log', '--level', default=20, type=int, help='Set Logging Level')
+    
     args = parser.parse_args()
 
-    # Regex
-    regex_length = "[.\S]{%s,%s}" % (args.length[ 0], args.length[1])
-    pattern_length = re.compile(regex_length)
-
-    for password_list in args.passwordlist:
-        for word in open(password_list):
-            for match in re.finditer(pattern_length, word): # take words with length
-                PASSWORD_LIST.add(match.group().replace('\n',''))
-      
-    #print(PASSWORD_LIST)
-    
     logging.basicConfig(stream=sys.stdout, encoding='utf-8', format=FORMAT, level=args.level)
-
-    #import pandas as pd
-    #data = {'Name': ['a', 'b', 'c'], 'Age': [10, 11, 12]}
-    #df = pd.DataFrame(data)
-    #print(df)
-    #exit()
     main()
-
 
 
