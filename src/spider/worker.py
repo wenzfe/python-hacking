@@ -65,13 +65,14 @@ def fill_queue(origin_url: str, new_urls: List[str], queue: Queue, visited: set,
             next_url_candidate = f"{link.scheme}://{link.netloc}{link.path}"
 
             with lock:
-                is_next_url_candidate_in_visited = next_url_candidate in visited
+                is_next_url_candidate_in_visited = next_url_candidate not in visited
                 is_subdomain = link.netloc.endswith(urlparse(origin_url).netloc)
 
                 add_entry = ( is_next_url_candidate_in_visited and ( visit_external_url or is_subdomain ) )
                 logging.debug(f"Checking {next_url_candidate} adding {add_entry}: is visited: {is_next_url_candidate_in_visited} AND ( allow external URL: {visit_external_url} OR is subdomain: {is_subdomain} )")
                 # prevent revisiting of a URL   AND   ( external URL    OR  subdomain )
                 if add_entry:
+                    visited.add(next_url_candidate)        # mark url as visited
                     queue.put(next_url_candidate)    # add new elements to queue
 
 
@@ -197,6 +198,5 @@ def thread_worker( url: str, proxy: dict, timeout: int, queue: Queue, visited: s
                 except Exception as exc_store_data:
                     logging.error(exc_store_data)
                 else:
-                    with lock:                  # update blacklist
-                        visited.add(url)        # mark url as visited
+                    pass
 
