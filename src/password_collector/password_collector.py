@@ -49,10 +49,10 @@ def parse_html():
                     with open(html_path+file) as f:
                         html_code = f.read()
                     soup = BeautifulSoup(html_code, "html.parser")
-                    regex_length = "[.\S]{%s,%s}" % (args.length[ 0], args.length[1])
+                    regex_length = "[.\S]{%s,%s}\s" % (args.length[ 0], args.length[1])
                     regex_passwords_html = re.compile(regex_length)
                     for word in  regex_passwords_html.findall(soup.text):
-                        word_count(word)
+                        word_count(word.replace('\n','').strip())
                 
 def leetspeak():
     global PASSWORD_LIST
@@ -80,7 +80,7 @@ def crate_pw_list(min_frequency, max_frequency):
     print(df)
     pd_output(df)
     symbole, option, num = '','',1
-    print(f'The words have a frequency of {min_frequency} to {max_frequency}. Use 0 to take all words.')
+    print(f'The words have a frequency of {min_frequency} to {max_frequency}')
     print(f'Most words appear {average} times on average')
     print('[?] Input Form: \n  - All Words = 0\n  - Words with [<,>,=] number\n  - Count Words with frequency = ? number\n')
     while option.lower() != 'exit':
@@ -160,7 +160,7 @@ if __name__ == '__main__':
 
     parser.add_argument('-sc', '--specialchar', action='store_true', default=False, help='Flag special character')
     parser.add_argument('-ls', '--leetspeak', action='store_true', default=False, help='Flag Leetspeak')
-    parser.add_argument('-l', '--length', nargs=2, default=[4,16], type=int, help='Min and Max Word length in Passwordlist')
+    parser.add_argument('-l', '--length', nargs=2, default=[8,16], type=int, help='Min and Max Word length in Passwordlist')
 
     parser.add_argument('-opw', '--outputPw', nargs='?', default='wordlist', help='Output File Name for Passwordlist')
     parser.add_argument('-ocvs', '--outputCvs', nargs='?', default='count', help='Output File Name for Counted Words overview')
