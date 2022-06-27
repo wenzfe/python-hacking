@@ -46,6 +46,9 @@ def main(max_workers: int, visit_external_url: bool, request_proxy, request_time
                 logging.info(f"Number of visited URLs: {len(visited)}")
                 logging.info(f"Current queue size: {queue_urls.qsize()}")
 
+                with open(os.path.join(path, 'visited_urls.log'), 'a') as f:
+                    f.write(next_url)
+                    f.write("\n")
                 # check Thread's for errors and log them
                 # use list [e.result() for e in res]
 
@@ -126,13 +129,13 @@ def commandline_input():
         nargs='*',
         choices=['OTHER', 'HTML', 'JS', 'CSS', 'IMAGE', 'LINK'],
         default=['OTHER', 'HTML', 'JS', 'CSS', 'IMAGE', 'LINK'],
-        help='Select the data types to be stored'
+        help='Select the data types to be stored (default: %(default)s)'
     )
 
 
     # Log level
     parser.add_argument('--log-lvl',
-        default=30,
+        default=20,
         type=int,
         help='The logging level of the script, control the verbosity of output (default: %(default)s)'
     )
