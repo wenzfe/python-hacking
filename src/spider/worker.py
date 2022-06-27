@@ -45,7 +45,7 @@ def crawl_page(url: str, timeout: int, proxy: dict) -> Crawled:
     """
 
     session = HTMLSession()
-    r = session.get(url, timeout=timeout, proxies=proxy, verify=False)
+    r = session.get(url, timeout=timeout, proxies=proxy) # , verify=False
 
     return {
         'html': [r.html.html],
@@ -65,11 +65,11 @@ def fill_queue(origin_url: str, new_urls: List[str], queue: Queue, visited: set,
             next_url_candidate = f"{link.scheme}://{link.netloc}{link.path}"
 
             with lock:
-                is_next_url_candidate_in_visited = next_url_candidate not in visited
+                is_next_url_candidate_in_visited = next_url_candidate in visited
                 is_subdomain = link.netloc.endswith(urlparse(origin_url).netloc)
 
                 add_entry = ( is_next_url_candidate_in_visited and ( visit_external_url or is_subdomain ) )
-                logging.info(f"Checking {next_url_candidate} adding {add_entry}: is visited: {is_next_url_candidate_in_visited} AND ( allow external URL: {visit_external_url} OR is subdomain: {is_subdomain} )")
+                logging.debug(f"Checking {next_url_candidate} adding {add_entry}: is visited: {is_next_url_candidate_in_visited} AND ( allow external URL: {visit_external_url} OR is subdomain: {is_subdomain} )")
                 # prevent revisiting of a URL   AND   ( external URL    OR  subdomain )
                 if add_entry:
                     queue.put(next_url_candidate)    # add new elements to queue
@@ -108,7 +108,7 @@ def download_file(url: str, timeout: int, proxy: dict, chunk_size=128) -> Iterat
         logging.warning(f"Missing scheme for {url} trying with {scheme_http}")
         url = scheme_http + url
     try:
-        r = get(url, timeout=timeout, proxies=proxy, verify=False)
+        r = get(url, timeout=timeout, proxies=proxy) # , verify=False
     except Exception as exc_download:
         logging.error(exc_download)
     else:
