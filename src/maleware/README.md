@@ -23,4 +23,4 @@ Findet über HTTP Cookies statt, Daten werden base64 encodiert und verschlüssel
 
 ## 5. Persistenz
 5.1 Private SSH Key von User root <br>
-5.2 Rev Shell (via SUID)
+5.2 Rev Shell (via SUID) (in crontab @reboot)
