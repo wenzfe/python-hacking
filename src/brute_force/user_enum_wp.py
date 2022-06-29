@@ -9,6 +9,14 @@ FORMAT = '[%(asctime)s] [%(levelname)-8s] [%(message)s]'
 G_USERS = set()
 V_USERS = []
         
+
+def output_file(user_list):
+    if args.output:
+        with open(args.output, 'w') as f:
+            for user in user_list:
+                f.write("%s\n" % user)
+        f.close()
+
 async def id_enum(id,s):
     global G_USERS
     try:
@@ -24,6 +32,7 @@ async def id_enum(id,s):
     except Exception as e:
         print(f'User ID Enumeration Failed : {e}')
         exit(-1)
+
 async def login_enum(g_user,s):
     global V_USERS
     data = {
@@ -48,11 +57,14 @@ async def main():
     global G_USERS
     print('\n| Start User Enum Script')
     s = AsyncHTMLSession()
+
     if not args.skipIdEnum:
+        print(f'[#] Enumartion via User ID from 1 to {args.id}')
         tasks = (id_enum(id,s) for id in range(1,args.id))
         await asyncio.gather(*tasks)
-    
+
     if not args.skipLoginEnum:  
+        print(f'[#] Enumartion via Login with {len(G_USERS)} Usernames')
         for listname in username_list:
             if args.userlist:
                 users = [line.lower().replace("\n","") for line in open(listname, 'r')]
@@ -61,16 +73,14 @@ async def main():
             G_USERS.update(users)
         tasks = (login_enum(g_user,s) for g_user in G_USERS)
         await asyncio.gather(*tasks)
-
+   
     if len(V_USERS):
         print(f'| Valide Usernames: {str(V_USERS)}')
-        if args.output:
-            with open(args.output, 'w') as f:
-                for user in V_USERS:
-                    f.write("%s\n" % user)
-            f.close()
+        output_file(V_USERS)
     else:
         print('| No Valide Usernames found')
+        print(f'| Usernames on the Site: {str(G_USERS)}')
+        output_file(G_USERS)
     print('| End')
     exit()
 
@@ -83,7 +93,7 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--id', type=int, default=100, help='Nummbers of User IDs to Brute Force')
     parser.add_argument('-sIE', '--skipIdEnum', action=argparse.BooleanOptionalAction, default=False, help='Skip Enumeration via User ID')
     parser.add_argument('-sLE', '--skipLoginEnum', action=argparse.BooleanOptionalAction, default=False, help='Skip Enumeration via Login Alert')
-    parser.add_argument('-log', '--level', default=20, type=int, help='Set Logging Level')
+    parser.add_argument('-log', '--level', default=50, type=int, help='Set Logging Level')
     args = parser.parse_args()
     args.url = args.url.rstrip('/')
     username_list = []

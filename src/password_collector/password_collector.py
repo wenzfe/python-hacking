@@ -13,7 +13,6 @@ LEET_REPLACE = {
         'a': '@', 'A': '@',
         'i': '!', 'I': '!',
         's': '$', 'S': '$',
-        'i': '1', 'L': '1',
         'o': '0', 'O': '0'
     }
 SPECIAL_CHAR = ['!','?','$']
@@ -21,7 +20,7 @@ SPECIAL_CHAR = ['!','?','$']
 def pw_output():
     file = f'{args.outputPw}_{str(len(PASSWORD_LIST))}.lst'
     with open(file, 'w') as f:
-        for word in PASSWORD_LIST:
+        for word in reversed(list(PASSWORD_LIST)):
             f.write(word+'\n')
         f.close()
     logging.info(f'Crated file: {file}')
