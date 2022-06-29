@@ -9,8 +9,8 @@ FORMAT = '[%(asctime)s] [%(levelname)-8s] [%(message)s]'
 G_USERS = set()
 V_USERS = []
         
-
 def output_file(user_list):
+    looging.info(f'Crated file: {args.output}')
     if args.output:
         with open(args.output, 'w') as f:
             for user in user_list:

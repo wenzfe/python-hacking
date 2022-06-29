@@ -8,19 +8,26 @@ FORMAT = '[%(asctime)s] [%(levelname)-8s] [%(message)s]'
 COUNT = dict()
 SORT_COUNT = dict()
 PASSWORD_LIST = set()
-LEET_REPLACE = {
+LEET_REPLACE_SMALE = {
+        'a': '@', 'A': '@',
+    }
+LEET_REPLACE_MEDIUM = {
         'e': '3', 'E': '3',
         'a': '@', 'A': '@',
         'i': '!', 'I': '!',
         's': '$', 'S': '$',
         'o': '0', 'O': '0'
     }
-SPECIAL_CHAR = ['!','?','$']
+LEET_REPLACE = LEET_REPLACE_SMALE
+
+SPECIAL_CHAR_SMALE = ['!']
+SPECIAL_CHAR_MEDIUM = ['!','?','$','&','%']
+SPECIAL_CHAR = SPECIAL_CHAR_SMALE
 
 def pw_output():
     file = f'{args.outputPw}_{str(len(PASSWORD_LIST))}.lst'
     with open(file, 'w') as f:
-        for word in reversed(list(PASSWORD_LIST)):
+        for word in PASSWORD_LIST:
             f.write(word+'\n')
         f.close()
     logging.info(f'Crated file: {file}')
@@ -31,13 +38,17 @@ def pd_output(df):
     df.to_csv(file, sep='\t', encoding='utf-8')
     logging.info(f'Crated file: {file}')
 
+def check_len(word):
+    if len(word) >= args.length[0] and len(word) <= args.length[1]:
+        return word
+    return None
+
 def word_count(word):
     global COUNT
-    if word:
-        if word in COUNT:
-            COUNT[word] += 1
-        else:
-            COUNT[word] = 1
+    if word in COUNT:
+        COUNT[word] += 1
+    else:
+        COUNT[word] = 1
 
 def parse_html():
     for page in os.listdir(args.dirpath):
@@ -47,11 +58,15 @@ def parse_html():
                 if '.html' in file:
                     with open(html_path+file) as f:
                         html_code = f.read()
-                    soup = BeautifulSoup(html_code, "html.parser")
-                    regex_length = "[.\S]{%s,%s}\s" % (args.length[ 0], args.length[1])
-                    regex_passwords_html = re.compile(regex_length)
-                    for word in  regex_passwords_html.findall(soup.text):
-                        word_count(word.replace('\n','').strip())
+                    soup = BeautifulSoup(html_code, "html.parser").text
+                    
+                    for word in soup.split(' '):
+                        word = word.strip().replace('\n','')
+                        if word != '' and word.isalpha():
+                            if word[-1] in ".,!?:;":
+                                word = word[:-1]
+                            if check_len(word):
+                                word_count(word)
                 
 def leetspeak():
     global PASSWORD_LIST
@@ -127,8 +142,7 @@ def main():
         print(password_list)
         for word in open(password_list):
             word = word.replace('\n','')
-            if len(word) >= args.length[0] and len(word) <= args.length[1]:
-                print(word)
+            if check_len(word):
                 PASSWORD_LIST.add(word)
 
     print("\n| Start Selenium Script")
