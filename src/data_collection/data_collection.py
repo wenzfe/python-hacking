@@ -48,8 +48,10 @@ def check_len(word):
         return word
     return None
 
-# Serach for username in HTML source code by tags
 def collect_username(soup):
+    '''
+    Serach for username in HTML source code by tags
+    '''
     global USERNAME
     # author name
     tag_list = soup.find_all('p', class_="wp-block-post-author__name")
