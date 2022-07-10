@@ -20,6 +20,7 @@ class Crawled(TypedDict):       # Return type of function: crawl_page
     js: List[str]
     images: List[str]
     images_data: List[str]
+    other: List[str]
 
 
 def resolve_url(src_url: str, url: str):
@@ -53,7 +54,8 @@ def crawl_page(url: str, timeout: int, proxy: dict) -> Crawled:
         'css': [resolve_url(url, e.attrs['href']) for e in r.html.find('link[href$=".css"]')],
         'js': [resolve_url(url, e.attrs['src']) for e in r.html.find('script[src]')],
         'images': [resolve_url(url, e.attrs['src']) for e in r.html.find('img[src^="http"]')],
-        'images_data': [e.attrs['src'] for e in r.html.find('img[src^="data:"]')]
+        'images_data': [e.attrs['src'] for e in r.html.find('img[src^="data:"]')],
+        'other': [resolve_url(url, e.attrs['src']) for e in r.html.find('source[src]')]
     }
 
 
@@ -180,8 +182,6 @@ def thread_worker( url: str, proxy: dict, timeout: int, queue: Queue, visited: s
                         with open(os.path.join(extended_path, "page.txt"), "w") as file:
                             file.write(url)
 
-                    # store_data_type(XdataX, "OTHER")
-
                     if 'HTML' in store_data:
                         store_data_type_by_data(result_page['html'], extended_path, "HTML", ".html")
 
@@ -193,6 +193,9 @@ def thread_worker( url: str, proxy: dict, timeout: int, queue: Queue, visited: s
 
                     if 'IMAGE' in store_data:
                         store_data_type_by_url(result_page['images'], extended_path, "IMAGE", timeout, proxy)
+
+                    if 'OTHER' in store_data:
+                        store_data_type_by_url(result_page['other'], extended_path, "OTHER", timeout, proxy)
 
 
                 except Exception as exc_store_data:

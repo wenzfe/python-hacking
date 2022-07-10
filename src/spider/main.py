@@ -22,6 +22,10 @@ visited = set()
 
 
 def main(max_workers: int, visit_external_url: bool, request_proxy, request_timeout: int, path, store_data: set, urls: list, url_paths: list):
+    """
+    Main handles URL's and their permutation, spawns threads 
+    """
+    
     queue_urls = Queue()
 
     logging.info(f"Using Configuration max_workers: {max_workers} | request-timeout: {request_timeout} | proxys: {request_proxy} | visit-external-url: {visit_external_url}")
