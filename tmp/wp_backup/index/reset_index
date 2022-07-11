@@ -1,0 +1,16 @@
+#!/bin/bash
+
+cat /opt/index/wp-admin_index.php > ./srv/www/wordpress/wp-admin/index.php
+cat /opt/index/network_index.php > /srv/www/wordpress/wp-admin/network/index.php
+cat /opt/index/user_index.php > /srv/www/wordpress/wp-admin/user/index.php
+cat /opt/index/wp-content_index.php > /srv/www/wordpress/wp-content/index.php
+cat /opt/index/wp-content/twentytwenty_index.php > /srv/www/wordpress/wp-content/themes/twentytwenty/index.php
+cat /opt/index/themes_index.php > /srv/www/wordpress/wp-content/themes/index.php
+cat /opt/index/twentytwentyone_index.php > /srv/www/wordpress/wp-content/themes/twentytwentyone/index.php
+cat /opt/index/twentytwentytwo_index.php > /srv/www/wordpress/wp-content/themes/twentytwentytwo/index.php
+cat /opt/index/languages_index.php > ./srv/www/wordpress/wp-content/plugins/fakerpress/languages/index.php
+cat /opt/index/fakerpress_index.php > ./srv/www/wordpress/wp-content/plugins/fakerpress/index.php
+cat /opt/index/plugins_index.php > /srv/www/wordpress/wp-content/plugins/index.php
+cat /opt/index/akismet_index.php > ./srv/www/wordpress/wp-content/plugins/akismet/index.php
+cat /opt/index/wordpress_index.php > ./srv/www/wordpress/index.php
+cat /opt/index/blocks_index.php > ./srv/www/wordpress/wp-includes/blocks/index.php
