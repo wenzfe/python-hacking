@@ -281,7 +281,7 @@ if __name__ == '__main__':
     parser.add_argument('-sC', '--skipCreateUser', action=argparse.BooleanOptionalAction, default=False, help='Dont create new user with admin rights')
     parser.add_argument('-sB', '--skipBackdoor', action=argparse.BooleanOptionalAction, default=False, help='Dont inject php backdoor in plugin file')
     parser.add_argument('-H', '--headless', action=argparse.BooleanOptionalAction, default=False, help='Start in headless mode, for no window')
-    parser.add_argument('-log', '--level', default=20, type=int, help='Set Logging Level')
+    parser.add_argument('-log', '--level', default=50, type=int, help='Set Logging Level')
     args = parser.parse_args()
     args.url = args.url.rstrip('/')
     options = None # driver options
