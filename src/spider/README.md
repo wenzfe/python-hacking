@@ -11,7 +11,7 @@ A multi threaded web crawler / spider
 # Demo
 Spider.exe --urls http://wordpress:80/ -p Storage --log-output spider.log --log-lvl 10 --url-paths paths.txt
 
-python main.py --urls http://wordpress:80/ -p C:/Temp/Storage --log-output spider.log --log-lvl 0 --ur
+python main.py --urls http://wordpress:80/ -p C:/Temp/ --log-output C:/Temp/spider.log --log-lvl 0 --ur
 --url-paths paths.txt
 ```
 
