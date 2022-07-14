@@ -92,7 +92,7 @@ def collect_word(text):
     '''
     global COUNT
     for word in text.split(' '):
-        word = filter()
+        word = filter(word)
         if check_len(word): # only words with predetermined length
             # count number of word in all html pages
             if word in COUNT:
@@ -255,12 +255,12 @@ if __name__ == '__main__':
     group.add_argument('-p', '--passwordlist', nargs='*', default=[], type=str, help='One or more lists with passwords')
     parser.add_argument('-sc', '--specialchar', action='store_true', default=False, help='Use special character')
     parser.add_argument('-ls', '--leetspeak', action='store_true', default=False, help='Use Leetspeak')
-    parser.add_argument('-l', '--lensgth', nargs=2, default=[8,16], type=int, help='Min and max word length')
+    parser.add_argument('-l', '--length', nargs=2, default=[8,16], type=int, help='Min and max word length')
     parser.add_argument('-op', '--outputPw', nargs='?', default='wordlist', help='Output filename for passwords')
     parser.add_argument('-ou', '--outputUser', nargs='?', default='username', help='Output filename for usernames')
     parser.add_argument('-log', '--level', default=20, type=int, help='Set Logging Level')
     args = parser.parse_args()
-
+   
     logging.basicConfig(stream=sys.stdout, encoding='utf-8', format=FORMAT, level=args.level)
     main()
 
