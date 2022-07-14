@@ -1,0 +1,19 @@
+
+
+PORT     STATE SERVICE REASON  VERSION
+22/tcp   open  ssh     syn-ack OpenSSH 8.4p1 Debian 5 (protocol 2.0)
+| ssh-hostkey: 
+|   3072 a4:e6:9a:d4:c4:d7:1a:c3:b4:2e:71:ab:00:3d:50:a8 (RSA)
+| ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDTDSl+EKZD3EPQoMvqvTZpn<SNIP>
+|   256 4e:87:75:1d:1d:bc:03:f6:3d:68:eb:ee:6d:b0:f0:85 (ECDSA)
+| ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzd<SNIP>
+|   256 86:ba:9e:11:4f:f8:c1:28:bd:d1:f5:d3:53:61:46:5e (ED25519)
+|_ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGVq8UHNdXt2xBTdG5UVSmhkQ7IRm01HhYcbegb6D5rn
+80/tcp   open  http    syn-ack Apache httpd 2.4.53 ((Debian))
+|_http-favicon: Unknown favicon MD5: 64B79411DE87E68F42103197BD3A9AAD
+|_http-server-header: Apache/2.4.53 (Debian)
+| http-methods: 
+|_  Supported Methods: GET HEAD POST OPTIONS
+3306/tcp open  mysql   syn-ack MySQL (unauthorized)
+Service Info: OSs: Unix, Linux; CPE: cpe:/o:linux:linux_kernel
+
