@@ -60,6 +60,8 @@ def crawl_page(url: str, timeout: int, proxy: dict) -> Crawled:
 
 
 def fill_queue(origin_url: str, new_urls: List[str], queue: Queue, visited: set, lock: Lock, visit_external_url=False):
+    """
+    """
     logging.debug(f"{origin_url} found {len(new_urls)} URLs")
     try:
         for current_link in new_urls:
@@ -68,7 +70,7 @@ def fill_queue(origin_url: str, new_urls: List[str], queue: Queue, visited: set,
 
             with lock:
                 is_next_url_candidate_in_visited = next_url_candidate not in visited
-                is_subdomain = link.netloc.endswith(urlparse(origin_url).netloc)
+                is_subdomain = link.hostname.endswith(urlparse(origin_url).hostname)
 
                 add_entry = ( is_next_url_candidate_in_visited and ( visit_external_url or is_subdomain ) )
                 logging.debug(f"Checking {next_url_candidate} adding {add_entry}: is visited: {is_next_url_candidate_in_visited} AND ( allow external URL: {visit_external_url} OR is subdomain: {is_subdomain} )")
@@ -84,6 +86,8 @@ def fill_queue(origin_url: str, new_urls: List[str], queue: Queue, visited: set,
 
 
 def store_stream(chunk_iterator: Iterator, name: str, path: str):
+    """
+    """
     try:
         with open(os.path.join(path, name), "wb") as file:
             for chunk in chunk_iterator:
@@ -93,6 +97,8 @@ def store_stream(chunk_iterator: Iterator, name: str, path: str):
 
 
 def store_data(data: str, name: str, path: str):
+    """
+    """
     try:
         with open(os.path.join(path, name), "bw") as file:
             file.write(data.encode())
@@ -157,49 +163,52 @@ def store_data_type_by_data(objects: list, path: str, dir: str, file_extension: 
 
 
 def thread_worker( url: str, proxy: dict, timeout: int, queue: Queue, visited: set, lock: Lock, base_path: str, store_data: set, visit_external_url=False):
-        logging.info(f"{url} Start working")
-        input_url = urlparse(url)
-        input_url = f"{input_url.scheme}://{input_url.netloc}/"
-        try:                    # crawl the page at the specified url
-            result_page = crawl_page(url, timeout, proxy) 
-        except Exception as exc_crawl_page:
-            logging.error(exc_crawl_page)
+    """
+
+    """
+    logging.info(f"{url} Start working")
+    input_url = urlparse(url)
+    input_url = f"{input_url.scheme}://{input_url.netloc}/"
+    try:                    # crawl the page at the specified url
+        result_page = crawl_page(url, timeout, proxy) 
+    except Exception as exc_crawl_page:
+        logging.error(exc_crawl_page)
+    else:
+        try:                # fill queue
+            fill_queue(url, result_page['links'], queue, visited, lock, visit_external_url)                
+        except Exception as exc_fill_queue:
+            logging.error(exc_fill_queue)
         else:
-            try:                # fill queue
-                fill_queue(url, result_page['links'], queue, visited, lock, visit_external_url)                
-            except Exception as exc_fill_queue:
-                logging.error(exc_fill_queue)
+
+            try:
+
+                if len(store_data) != 0:
+                    dirname = uuid4()
+                    extended_path = os.path.join(base_path, str(dirname))
+                    os.makedirs(extended_path, exist_ok=True)
+
+                if 'LINK' in store_data:
+                    with open(os.path.join(extended_path, "page.txt"), "w") as file:
+                        file.write(url)
+
+                if 'HTML' in store_data:
+                    store_data_type_by_data(result_page['html'], extended_path, "HTML", ".html")
+
+                if 'CSS' in store_data:
+                    store_data_type_by_url(result_page['css'], extended_path, "CSS", timeout, proxy)
+
+                if 'JS' in store_data:
+                    store_data_type_by_url(result_page['js'], extended_path, "JS", timeout, proxy)
+
+                if 'IMAGE' in store_data:
+                    store_data_type_by_url(result_page['images'], extended_path, "IMAGE", timeout, proxy)
+
+                if 'OTHER' in store_data:
+                    store_data_type_by_url(result_page['other'], extended_path, "OTHER", timeout, proxy)
+
+
+            except Exception as exc_store_data:
+                logging.error(exc_store_data)
             else:
-
-                try:
-
-                    if len(store_data) != 0:
-                        dirname = uuid4()
-                        extended_path = os.path.join(base_path, str(dirname))
-                        os.makedirs(extended_path, exist_ok=True)
-
-                    if 'LINK' in store_data:
-                        with open(os.path.join(extended_path, "page.txt"), "w") as file:
-                            file.write(url)
-
-                    if 'HTML' in store_data:
-                        store_data_type_by_data(result_page['html'], extended_path, "HTML", ".html")
-
-                    if 'CSS' in store_data:
-                        store_data_type_by_url(result_page['css'], extended_path, "CSS", timeout, proxy)
-
-                    if 'JS' in store_data:
-                        store_data_type_by_url(result_page['js'], extended_path, "JS", timeout, proxy)
-
-                    if 'IMAGE' in store_data:
-                        store_data_type_by_url(result_page['images'], extended_path, "IMAGE", timeout, proxy)
-
-                    if 'OTHER' in store_data:
-                        store_data_type_by_url(result_page['other'], extended_path, "OTHER", timeout, proxy)
-
-
-                except Exception as exc_store_data:
-                    logging.error(exc_store_data)
-                else:
-                    pass
+                pass
 

@@ -7,6 +7,11 @@
 
 A multi threaded web crawler / spider
 
+```sh
+# Demo
+Spider.exe --urls http://wordpress:80/ -p Storage --log-output spider.log --log-lvl 10
+```
+
 ## Install
 
 ```sh
