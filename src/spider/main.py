@@ -33,9 +33,9 @@ def main(max_workers: int, visit_external_url: bool, request_proxy, request_time
     for url in urls:            # add URL's to queue
         queue_urls.put(url)
 
-    for path in url_paths:      # add paths to URL's and add them to the queue
+    for url_path in url_paths:      # add paths to URL's and add them to the queue
         for url in urls:
-            assemble_url = urlparse(url)._replace(path=urlparse(path).path).geturl()
+            assemble_url = urlparse(url)._replace(path=urlparse(url_path).path).geturl()
             queue_urls.put(assemble_url)
 
 
@@ -96,9 +96,10 @@ def commandline_input():
 
 
     parser.add_argument('--url-paths',
-        nargs='+',
+        nargs='?',
         type=str,
         metavar='PATH',
+        default=None,
         help='A file containing the paths to use when starting to performe the crawl.'
     )
 
