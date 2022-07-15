@@ -1,11 +1,15 @@
-selenium 
-1. Login with admin account
-2. Crate new user with admin rights
-3. login with new user
-4. Go to Plugins and chose a plugin to edit
-5. inject a backdoor php code in the chosen Plugin (example: Hello Dolly)
-6. Type a Command and run it. 
+# selenium 
+## Chrome Driver:
 
-cmd Options: 
-- exit
-- cleanup (bugy)
+Version 102.0.5005.61 (Official Build) (64-bit)
+
+- [https://sites.google.com/chromium.org/driver/](https://sites.google.com/chromium.org/driver/)
+
+Use: Latest stable release: [ChromeDriver 102.0.5005.61](https://chromedriver.storage.googleapis.com/index.html?path=102.0.5005.61/)
+
+## Install:
+- `pip3 install selenium-wire`
+- `pip3 install webdriver_manager`
+
+## Doku:
+- [https://selenium-python.readthedocs.io/](https://selenium-python.readthedocs.io/)
