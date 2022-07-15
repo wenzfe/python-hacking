@@ -1,12 +1,5 @@
 # python-hacking
 
-## Spider | Web Carwler
-
-![Diagramm](doc/webcrawler.svg)
-
----
----
-
 # Präsi 
 - Target System
 - Szenario & Phasen:
